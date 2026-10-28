@@ -373,4 +373,3 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
 
 refreshMemoTypes(); document.querySelectorAll('[data-list-view]').forEach(button => button.classList.toggle('active', button.dataset.listView === (state.listView || 'list'))); document.querySelectorAll('[data-organize-view]').forEach(button => button.classList.toggle('active', button.dataset.organizeView === (state.organizerView || 'list'))); renderCountdown(); renderStats(); renderRoute(); renderList(); renderOrganizer(); renderMemos();activateView('list',false);
 if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
-
