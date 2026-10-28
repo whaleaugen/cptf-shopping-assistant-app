@@ -1,5 +1,7 @@
 const EVENT = { id: 7166, exhibitId: 7940, name: 'COMICUP CITYTOUR FU', date: '2026-11-08T09:00:00+08:00', venue: '海峡国际会展中心' };
 const STORAGE_KEY = 'cptf-shopping-v1';
+const CATALOG_VERSION = '2026-10-28-v3';
+const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
 const MEMO_TYPES = { freebie: '无料', stamp: '盖章', promo: '摊宣', reminder: '提醒' };
 const DEFAULT_MEMO_TYPES = Object.entries(MEMO_TYPES).map(([id, name]) => ({ id, name }));
@@ -15,6 +17,7 @@ let editingMemoId = '';
 let pendingMemoImage = '';
 let cropSourceImage = null;
 let quickPurchaseImage = '';
+let catalogPromise = null;
 
 function cloneSeed() { return SEED_ITEMS.map(item => ({ ...item })); }
 function loadState() {
@@ -264,7 +267,8 @@ function mergeEnrichment(rows) {
       (nameMatches.length === 1 ? nameMatches[0] : null);
     if (item) {
       if (!item.customCover && row.coverUrl && row.coverUrl !== item.coverUrl) imagesUpdated++;
-      ['description','author','cppId'].forEach(key => { if (row[key] != null) item[key] = row[key]; });
+      ['description','author','cppId','heat'].forEach(key => { if (row[key] != null) item[key] = row[key]; });
+      ['circle','type'].forEach(key => { if (!item[key] && row[key]) item[key] = row[key]; });
       if (!item.customCover && row.coverUrl != null) item.coverUrl = row.coverUrl;
       matched++; matchedItemIds.add(item.id); matchedRowIndexes.add(rowIndex);
     }
@@ -272,9 +276,24 @@ function mergeEnrichment(rows) {
   saveState();
   return { matched, imagesUpdated, unmatched: state.items.filter(item => !matchedItemIds.has(item.id)), extraCount: Math.max(0, rows.length - matchedRowIndexes.size), sourceCount: rows.length };
 }
+async function loadPublicCatalog() {
+  if (!catalogPromise) catalogPromise = fetch(CATALOG_URL).then(response => { if (!response.ok) throw new Error('catalog-http'); return response.json(); }).then(data => { if (!Array.isArray(data.items)) throw new Error('catalog-format'); return data.items; });
+  return catalogPromise;
+}
+async function enrichFromPublicCatalog(showReport = true) {
+  if (!state.items.length) return null;
+  toast('正在从 CPTF 公共资料库自动补全…');
+  const report = mergeEnrichment(await loadPublicCatalog());
+  report.publicCatalog = true;
+  state.catalogVersion = CATALOG_VERSION;
+  saveState(); renderRoute(); renderList(); renderOrganizer();
+  if (showReport) showSyncReport(report);
+  toast(`公共资料库已匹配 ${report.matched} 件制品`);
+  return report;
+}
 function showSyncReport(report) {
   const content = document.getElementById('reportDialogContent');
-  content.innerHTML = `<p class="eyebrow">SYNC REPORT</p><h2>图片同步结果</h2><div class="report-stats"><div><strong>${report.matched}</strong><small>成功匹配</small></div><div><strong>${report.imagesUpdated}</strong><small>图片更新</small></div><div><strong>${report.unmatched.length}</strong><small>清单未匹配</small></div></div><p class="report-note">同步源共有 ${report.sourceCount} 条展品，其中 ${report.extraCount} 条不在当前心愿单中，已自动忽略。价格、数量和购买状态全部保留。</p>${report.unmatched.length ? `<h3>未匹配的清单条目</h3><ul class="report-list">${report.unmatched.map(item => `<li>${esc(item.boothRaw)} · ${esc(item.name)}</li>`).join('')}</ul>` : '<p>当前清单已全部匹配。</p>'}`;
+  content.innerHTML = `<p class="eyebrow">SYNC REPORT</p><h2>${report.publicCatalog ? '公共资料库自动补全' : '图片同步结果'}</h2><div class="report-stats"><div><strong>${report.matched}</strong><small>成功匹配</small></div><div><strong>${report.imagesUpdated}</strong><small>图片更新</small></div><div><strong>${report.unmatched.length}</strong><small>清单未匹配</small></div></div><p class="report-note">${report.publicCatalog ? '已自动查询 20115 件 CPTF 公开制品。' : `同步源共有 ${report.sourceCount} 条展品。`}价格、数量、意向和购买状态全部保留。</p>${report.unmatched.length ? `<h3>未匹配的清单条目</h3><ul class="report-list">${report.unmatched.map(item => `<li>${esc(item.boothRaw)} · ${esc(item.name)}</li>`).join('')}</ul>` : '<p>当前清单已全部匹配。</p>'}`;
   document.getElementById('reportDialog').showModal();
 }
 function downloadJson() { const blob = new Blob([JSON.stringify({ ...state, event: EVENT, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'CPTF-shopping-backup.json'; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); }
@@ -283,7 +302,7 @@ document.querySelectorAll('[data-view]').forEach(button => button.addEventListen
 ['organizeSearch','organizeFilter'].forEach(id => document.getElementById(id).addEventListener(id === 'organizeSearch' ? 'input' : 'change', renderOrganizer));
 ['searchInput','statusFilter','intentFilter','sortSelect'].forEach(id => document.getElementById(id).addEventListener(id === 'searchInput' ? 'input' : 'change', renderList));
 document.getElementById('resetFilters').addEventListener('click', () => { document.getElementById('searchInput').value = ''; document.getElementById('statusFilter').value = 'all'; document.getElementById('intentFilter').value = 'all'; document.getElementById('sortSelect').value = 'custom'; renderList(); });
-document.getElementById('excelInput').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; try { const result = mergeImported(await readWishlistWorkbook(file)); renderRoute(); renderList(); toast(`导入完成：新增 ${result.added}，更新 ${result.updated}`); } catch (error) { console.error(error); toast(error.message === 'legacy-xls' ? '暂不支持旧式 .xls，请另存为 .xlsx' : 'Excel 读取失败，请检查文件格式'); } event.target.value = ''; });
+document.getElementById('excelInput').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; try { const result = mergeImported(await readWishlistWorkbook(file)); renderRoute(); renderList(); toast(`导入完成：新增 ${result.added}，更新 ${result.updated}`); try { await enrichFromPublicCatalog(true); } catch (catalogError) { console.error(catalogError); toast('清单已导入，但公共图片资料库暂时无法连接'); } } catch (error) { console.error(error); toast(error.message === 'legacy-xls' ? '暂不支持旧式 .xls，请另存为 .xlsx' : 'Excel 读取失败，请检查文件格式'); } event.target.value = ''; });
 document.getElementById('enrichmentInput').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; try { const data = JSON.parse(await file.text()), rows = Array.isArray(data) ? data : data.items; if (!Array.isArray(rows)) throw new Error('format'); const report = mergeEnrichment(rows); renderList(); showSyncReport(report); toast(`已补全 ${report.matched} 条展品`); } catch (_) { toast('无法读取补全 JSON'); } event.target.value = ''; });
 document.getElementById('backupInput').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; try { const data = JSON.parse(await file.text()); if (!Array.isArray(data.items)) throw new Error('format'); state = normalizeState(data); saveState(); renderRoute(); renderList(); renderMemos(); toast('备份已恢复，内嵌图片也已载入'); } catch (_) { toast('无法读取该备份'); } event.target.value = ''; });
 document.getElementById('exportButton').addEventListener('click', downloadJson);
@@ -315,3 +334,4 @@ document.getElementById('quickPurchasePhoto').addEventListener('change', async e
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./service-worker.js').catch(() => {});
 
 refreshMemoTypes(); document.querySelectorAll('[data-list-view]').forEach(button => button.classList.toggle('active', button.dataset.listView === (state.listView || 'list'))); renderCountdown(); renderStats(); renderRoute(); renderList(); renderOrganizer(); renderMemos();
+if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
