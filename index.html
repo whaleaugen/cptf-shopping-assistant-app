@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
   <div class="app-shell">
@@ -38,26 +38,27 @@
       <section class="stats" aria-label="清单统计">
         <article><span>展品</span><strong id="statItems">0</strong></article>
         <article><span>摊位</span><strong id="statBooths">0</strong></article>
-        <article><span>待购买</span><strong id="statPending">0</strong></article>
-        <article><span id="statBudgetLabel">计划预算</span><strong id="statBudget">¥0</strong></article>
+        <article><span id="statBudgetLabel">计划金额</span><strong id="statBudget">¥0</strong></article>
+        <article><span>实际消费</span><strong id="statSpent">¥0</strong></article>
       </section>
+      <div class="budget-detail"><span>纠结备选 <b id="statMaybe">¥0</b></span><span>未填写价格 <b id="statNoPrice">0</b> 件</span><span>待购买 <b id="statPending">0</b> 件</span></div>
 
       <nav class="view-tabs" aria-label="主要视图">
-        <button class="view-tab active" type="button" data-view="route">逛展路线</button>
-        <button class="view-tab" type="button" data-view="list">购买清单</button>
-        <button class="view-tab" type="button" data-view="organize">整理心愿单</button>
-        <button class="view-tab" type="button" data-view="memo">逛展备忘</button>
-        <button class="view-tab" type="button" data-view="manage">导入与同步</button>
+        <button class="view-tab active" type="button" data-view="list">心愿单</button>
+        <button class="view-tab" type="button" data-view="route">摊位</button>
+        <button class="view-tab" type="button" data-view="memo">备忘</button>
       </nav>
 
-      <section class="view active" id="routeView">
-        <div class="section-heading"><div><p class="eyebrow">ROUTE</p><h2>按馆整理</h2></div><span id="routeSummary"></span></div>
+      <section class="view" id="routeView">
+        <div class="section-heading"><div><p class="eyebrow">BOOTHS</p><h2>按馆查看摊位</h2></div><div class="heading-actions"><button class="text-button" id="addManualBooth" type="button">＋ 关注摊位</button><span id="routeSummary"></span></div></div>
         <div class="hall-grid" id="hallGrid"></div>
         <div class="route-board" id="routeBoard"></div>
       </section>
 
-      <section class="view" id="listView">
-        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>购买清单</h2></div><div class="view-switch"><button class="active" data-list-view="list" type="button">列表</button><button data-list-view="grid" type="button">双列</button></div><button class="text-button" id="resetFilters" type="button">清除筛选</button></div>
+      <section class="view active" id="listView">
+        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="view-switch"><button class="active" data-list-view="list" type="button">列表</button><button data-list-view="grid" type="button">双列</button></div><button class="text-button" id="resetFilters" type="button">清除筛选</button></div>
+        <button id="organizePrompt" class="organize-prompt" type="button" hidden><strong><span id="unreviewedCount">0</span> 件待整理</strong><span>开始决定购买意向 →</span></button>
+        <div class="wishlist-tools"><button id="openOrganizer" type="button">整理心愿单</button></div>
         <div class="filters">
           <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label>
           <select id="statusFilter" aria-label="购买状态">
@@ -79,7 +80,7 @@
       </section>
 
       <section class="view" id="organizeView">
-        <div class="section-heading"><div><p class="eyebrow">QUICK SORT</p><h2>整理心愿单</h2></div><div class="view-switch"><button class="active" data-organize-view="list" type="button">列表</button><button data-organize-view="large" type="button">漂亮大图</button></div><span id="organizeSummary"></span></div>
+        <div class="section-heading"><div><p class="eyebrow">QUICK SORT</p><h2>整理心愿单</h2></div><div class="view-switch"><button class="active" data-organize-view="list" type="button">列表</button><button data-organize-view="large" type="button">漂亮大图</button></div><button class="text-button" id="closeOrganizer" type="button">返回心愿单</button><span id="organizeSummary"></span></div>
         <p class="organize-intro">不用打开详情，直接给每件制品选择购买意向。第一次整理建议从“尚未整理”开始。</p>
         <div class="organize-toolbar">
           <label class="search-box"><span>⌕</span><input id="organizeSearch" type="search" placeholder="搜索制品、摊位或社团"></label>
@@ -90,9 +91,9 @@
       </section>
 
       <section class="view" id="memoView">
-        <div class="section-heading"><div><p class="eyebrow">FIELD NOTES</p><h2>逛展备忘</h2></div><span id="memoSummary"></span></div>
+        <div class="section-heading"><div><p class="eyebrow">FIELD NOTES</p><h2>逛展备忘</h2></div><div class="heading-actions"><button class="text-button" id="openMemoForm" type="button">＋ 新增备忘</button><span id="memoSummary"></span></div></div>
         <div class="memo-layout">
-          <form class="memo-form" id="memoForm">
+          <form class="memo-form is-collapsed" id="memoForm">
             <div class="memo-form-head"><h3 id="memoFormTitle">记一件想做的事</h3><p>无料、集章、摊宣和临场提醒都可以放进路线。</p><button id="manageMemoTypes" class="memo-type-manage" type="button">管理备忘类型</button></div>
             <div class="memo-form-grid">
               <label><span>类型</span><select id="memoType"><option value="freebie">无料</option><option value="stamp">盖章 / 集章</option><option value="promo">摊宣链接</option><option value="reminder">普通提醒</option></select></label>
@@ -107,29 +108,12 @@
             <button class="memo-submit" id="memoSubmit" type="submit">加入逛展备忘</button><button class="memo-cancel-edit" id="memoCancelEdit" type="button" hidden>取消编辑</button>
           </form>
           <div>
-            <div class="memo-filters" id="memoFilters"><button class="active" type="button" data-memo-filter="all">全部</button><button type="button" data-memo-filter="freebie">无料</button><button type="button" data-memo-filter="stamp">盖章</button><button type="button" data-memo-filter="promo">摊宣</button><button type="button" data-memo-filter="reminder">提醒</button></div>
+            <div class="memo-filter-row"><div class="memo-filters" id="memoFilters"><button class="active" type="button" data-memo-filter="all">全部</button></div><select id="memoStatusFilter"><option value="all">全部状态</option><option value="pending">待完成</option><option value="done">已完成</option></select><select id="memoHallFilter"><option value="all">全部馆别</option><option value="创">创作摊</option><option value="壹">壹馆</option><option value="贰">贰馆</option><option value="叁">叁馆</option><option value="肆">肆馆</option></select></div>
             <div class="memo-list" id="memoList"></div>
           </div>
         </div>
       </section>
 
-      <section class="view" id="manageView">
-        <div class="section-heading"><div><p class="eyebrow">DATA</p><h2>导入与同步</h2></div></div>
-        <div class="manage-grid two-cards">
-          <article class="manage-card featured">
-            <span class="step">01</span><h3>导入 CPP 清单</h3>
-            <p>支持 CPP 导出的 Excel；导入后会自动从 20115 件 CPTF 公共资料中匹配图片、作者和热度。</p>
-            <label class="file-button">选择 Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label>
-            <small>导入会合并同名展品，并保留已填写的价格和购买状态。</small>
-          </article>
-          <article class="manage-card">
-            <span class="step">02</span><h3>备份与迁移</h3>
-            <p>清单数据只存于当前浏览器。换设备或清理浏览器前，请先导出备份。</p>
-            <div class="button-row"><button class="file-button secondary" id="exportButton" type="button">导出 JSON</button><label class="file-button secondary">恢复备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></div>
-          </article>
-        </div>
-        <div class="data-note">导入完成后会自动连接公共资料库补全图片；个人清单、预算和备忘仍只保存在你的设备中。</div>
-      </section>
     </main>
   </div>
 
@@ -165,7 +149,9 @@
       <p class="eyebrow">SETTINGS</p><h2>设置</h2>
       <label class="setting-row"><span><strong>显示已购买展品</strong><small>关闭后，路线中只保留还没买到的展品</small></span><input id="showPurchased" type="checkbox" checked></label>
       <label class="setting-row budget-setting"><span><strong>总购物预算</strong><small>“只逛逛”的制品不计入计划预算</small></span><input id="budgetLimit" type="number" min="0" step="1" placeholder="不限"></label>
+      <label class="setting-row visit-date-setting"><span><strong>我的逛展日</strong><small>只影响个人倒计时，以后可以随时修改</small></span><input id="visitDate" type="date" min="2026-11-06" max="2026-11-08"></label>
       <section class="catalog-settings"><div><strong>图片自动补全</strong><small>导入 Excel 后会自动运行；缺图时也可以在这里重新匹配或手动导入维护文件。</small></div><button id="refreshCatalogButton" type="button">重新自动匹配</button><a href="sync-helper.html">维护公共资料库</a><label>手动导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label></section>
+      <section class="settings-data"><h3>数据管理</h3><p>个人清单、图片、社媒和备忘只保存在当前设备。</p><label class="settings-action primary">导入 CPP Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label><button class="settings-action" id="exportButton" type="button">导出完整备份</button><label class="settings-action">恢复 JSON 备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></section>
       <button class="danger-button" id="resetDataButton" type="button">恢复初始 CPTF 清单</button>
       <p class="credits">基于 <a href="https://github.com/Riiiiiii/cpg08-shopping-assistant" target="_blank" rel="noopener">cpg08-shopping-assistant</a> 改造。所有个人清单数据保存在本机。</p>
     </form>
@@ -180,6 +166,7 @@
   <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
+
