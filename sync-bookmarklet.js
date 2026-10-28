@@ -1,6 +1,6 @@
 async function cppSync() {
   const EVENT_ID = 7940;
-  const KNOWN_TYPES = '36,37,38,39,40,50,51,52';
+  const TYPE_IDS = Array.from({ length: 17 }, (_, index) => String(36 + index));
   if (!/(^|\.)allcpp\.cn$/i.test(location.hostname)) {
     alert('请先打开 www.allcpp.cn 的 CPTF 活动页面，再点击这个书签。');
     return;
@@ -41,28 +41,37 @@ async function cppSync() {
       }
       throw lastError;
     };
-    message.textContent = '正在检测 CPP 的完整数据范围…';
-    const probes = [];
-    for (const candidate of ['', KNOWN_TYPES]) {
-      try {
-        const data = await readPage(candidate, 1);
-        probes.push({ typeIds: candidate, data, total: Number(data.total) || data.list.length });
-      } catch (error) {
-        if (error.message === 'LOGIN') throw error;
-      }
+    message.textContent = '正在检测 CPP 的 17 个制品分类…';
+    const allTypesProbe = await readPage('', 1);
+    const allTypesReportedTotal = Number(allTypesProbe.total) || allTypesProbe.list.length;
+    const partitions = [];
+    for (let index = 0; index < TYPE_IDS.length; index += 1) {
+      const typeId = TYPE_IDS[index];
+      message.textContent = `正在检测制品分类 ${index + 1}/${TYPE_IDS.length}…`;
+      const data = await readPage(typeId, 1);
+      const total = Number(data.total) || data.list.length;
+      if (total > 0) partitions.push({ typeId, data, total, label: data.list[0]?.type || `类型${typeId}` });
     }
-    if (!probes.length) throw new Error('FORMAT');
-    probes.sort((a, b) => b.total - a.total);
-    const chosen = probes[0];
-    const all = [...chosen.data.list];
-    const total = chosen.total;
-    let page = 2;
-    while (all.length < total && page <= 500) {
-      message.textContent = `接口报告 ${total} 件 · 正在读取第 ${page} 页 · 已获取 ${all.length} 件…`;
-      const data = await readPage(chosen.typeIds, page);
-      if (!data.list.length) break;
-      all.push(...data.list);
-      page += 1;
+    if (!partitions.length) throw new Error('FORMAT');
+    const all = [];
+    const partitionReports = [];
+    let partitionReportedTotal = 0;
+    let complete = true;
+    for (let index = 0; index < partitions.length; index += 1) {
+      const partition = partitions[index];
+      const rows = [...partition.data.list];
+      let page = 2;
+      while (rows.length < partition.total && page <= 500) {
+        message.textContent = `${partition.label} · 分类 ${index + 1}/${partitions.length} · ${rows.length}/${partition.total} 件…`;
+        const data = await readPage(partition.typeId, page);
+        if (!data.list.length) break;
+        rows.push(...data.list);
+        page += 1;
+      }
+      all.push(...rows);
+      partitionReportedTotal += partition.total;
+      if (rows.length < partition.total) complete = false;
+      partitionReports.push({ typeId: partition.typeId, label: partition.label, reportedTotal: partition.total, fetchedRows: rows.length, complete: rows.length >= partition.total });
     }
     const unique = [...new Map(all.map(item => [String(item.doujinshiId || `${item.doujinshiName}-${item.circleName}`), item])).values()];
     const items = unique.map(item => {
@@ -80,7 +89,7 @@ async function cppSync() {
       };
     });
     const typeCounts = items.reduce((counts, item) => { const key = item.type || '未分类'; counts[key] = (counts[key] || 0) + 1; return counts; }, {});
-    const payload = { eventId: 7166, exhibitId: EVENT_ID, eventName: 'COMICUP CITYTOUR FU', syncedAt: new Date().toISOString(), syncReport: { reportedTotal: total, fetchedRows: all.length, uniqueItems: items.length, queryMode: chosen.typeIds ? 'known-types' : 'all-types', complete: all.length >= total, typeCounts }, items };
+    const payload = { eventId: 7166, exhibitId: EVENT_ID, eventName: 'COMICUP CITYTOUR FU', syncedAt: new Date().toISOString(), syncReport: { allTypesReportedTotal, allTypesCapped: allTypesReportedTotal === 10000, partitionReportedTotal, fetchedRows: all.length, uniqueItems: items.length, queryMode: 'partitioned-types-36-52', complete, partitions: partitionReports, typeCounts }, items };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -89,8 +98,8 @@ async function cppSync() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(link.href), 2000);
-    message.textContent = all.length >= total ? `完整性检查通过：接口报告 ${total} 件，已导出 ${items.length} 件唯一展品。` : `注意：接口报告 ${total} 件，只读取到 ${all.length} 件，请稍后重试。`;
-    panel.style.background = all.length >= total ? '#53675a' : '#9a6a35';
+    message.textContent = complete ? `分类抓取完成：分类合计 ${partitionReportedTotal} 件，已导出 ${items.length} 件唯一展品。` : `注意：有分类没有读完，已导出 ${items.length} 件，请稍后重试。`;
+    panel.style.background = complete ? '#53675a' : '#9a6a35';
     setTimeout(() => panel.remove(), 12000);
   } catch (error) {
     console.error('[CPTF sync]', error);
