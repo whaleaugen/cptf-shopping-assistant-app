@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf4">
+  <title>CPP 图片同步助手 · CPTF</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell sync-page">
+    <a class="sync-back" href="index.html">← 返回购物助手</a>
+    <section class="sync-hero">
+      <p class="eyebrow">CPP IMAGE SYNC</p>
+      <h1>把封面带回来</h1>
+      <p>这个小书签会在 CPP 活动页里读取 CPTF 的公开展品列表，生成一份本地补全文件。它不会读取、保存或上传你的密码和 Cookie。</p>
+      <div class="sync-steps">
+        <div class="sync-step"><b>1</b><div><strong>保存同步书签</strong><small>电脑端：把下方绿色按钮拖到浏览器书签栏。拖动不方便时，也可以点击“复制书签代码”，新建书签后粘贴到网址栏。</small></div></div>
+        <div class="sync-step"><b>2</b><div><strong>打开 CPP 活动页并登录</strong><small>进入 COMICUP CITYTOUR FU 的官方页面，确认浏览器里已经登录 CPP。</small></div></div>
+        <div class="sync-step"><b>3</b><div><strong>点击“同步 CPTF 图片”书签</strong><small>页面右上角会显示同步进度，完成后自动下载 `CPTF-CPP-images.json`。</small></div></div>
+        <div class="sync-step"><b>4</b><div><strong>回购物助手导入</strong><small>在“导入与同步”里选择刚下载的补全 JSON，匹配成功的展品会立即显示封面。</small></div></div>
+      </div>
+      <a class="bookmarklet disabled" id="bookmarklet" href="#" draggable="true">正在生成同步书签…</a>
+      <button class="copy-bookmarklet" id="copyButton" type="button" disabled>复制书签代码</button>
+      <div class="sync-status" id="syncStatus">载入同步脚本中</div>
+      <div class="privacy-box"><strong>隐私说明：</strong>同步脚本只向 `www.allcpp.cn/api/doujinshi/search.do` 发起请求，活动展品 ID 固定为 7940；结果直接由浏览器下载到本机，不发送到本工具或其他服务器。</div>
+    </section>
+  </main>
+  <script src="sync-bookmarklet.js"></script>
+  <script>
+    (() => {
+      const link = document.getElementById('bookmarklet'), button = document.getElementById('copyButton'), status = document.getElementById('syncStatus');
+      try {
+        if (typeof cppSync !== 'function') throw new Error('load');
+        const code = `javascript:(${cppSync.toString()})()`;
+        link.href = code; link.classList.remove('disabled'); link.textContent = '同步 CPTF 图片'; button.disabled = false; status.textContent = '书签已准备好';
+        button.addEventListener('click', async () => { try { await navigator.clipboard.writeText(code); status.textContent = '已复制。请把代码粘贴到新书签的“网址”栏'; } catch (_) { status.textContent = '浏览器未允许复制，请直接拖动绿色按钮到书签栏'; } });
+        link.addEventListener('click', event => { event.preventDefault(); status.textContent = '请把按钮保存为书签，再到 CPP 活动页点击它'; });
+      } catch (_) { link.textContent = '同步脚本载入失败'; status.textContent = '请确认文件已完整解压后刷新页面'; }
+    })();
+  </script>
+</body>
+</html>
