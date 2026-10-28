@@ -67,4 +67,3 @@ CPP 的展品搜索接口依赖登录态，不应在公开网页中收集用户�
 - 购买状态、价格和补全信息默认只写入浏览器 `localStorage`。
 
 项目基于 [Riiiiiii/cpg08-shopping-assistant](https://github.com/Riiiiiii/cpg08-shopping-assistant) 的离线购物助手思路重制，并保留原仓库许可证。
-
