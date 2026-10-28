@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fffaf4">
+  <meta name="description" content="COMICUP CITYTOUR FU 离线购物清单与馆别导航">
+  <title>CPTF 购物助手</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=13">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="返回顶部">
+        <span class="brand-mark">C</span>
+        <span><strong>CPTF</strong><small>购物助手</small></span>
+      </a>
+      <button class="icon-button" id="settingsButton" type="button" aria-label="打开设置">•••</button>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="eventTitle">
+        <div class="hero-copy">
+          <p class="eyebrow">COMICUP CITYTOUR</p>
+          <h1 id="eventTitle">FU</h1>
+          <p class="event-meta">2026.11.06–11.08 · 海峡国际会展中心</p>
+        </div>
+        <div class="countdown" id="countdown" aria-live="polite"></div>
+      </section>
+
+      <section class="notice" id="mapNotice">
+        <span class="notice-icon">i</span>
+        <div><strong>官方场地图暂未公布</strong><p>当前按 Excel 摊位号提供馆别和字母区导航。地图公布后可直接替换，不影响你的购买记录。</p></div>
+      </section>
+
+      <section class="stats" aria-label="清单统计">
+        <article><span>展品</span><strong id="statItems">0</strong></article>
+        <article><span>摊位</span><strong id="statBooths">0</strong></article>
+        <article><span>待购买</span><strong id="statPending">0</strong></article>
+        <article><span id="statBudgetLabel">计划预算</span><strong id="statBudget">¥0</strong></article>
+      </section>
+
+      <nav class="view-tabs" aria-label="主要视图">
+        <button class="view-tab active" type="button" data-view="route">逛展路线</button>
+        <button class="view-tab" type="button" data-view="list">购买清单</button>
+        <button class="view-tab" type="button" data-view="organize">整理心愿单</button>
+        <button class="view-tab" type="button" data-view="memo">逛展备忘</button>
+        <button class="view-tab" type="button" data-view="manage">导入与同步</button>
+      </nav>
+
+      <section class="view active" id="routeView">
+        <div class="section-heading"><div><p class="eyebrow">ROUTE</p><h2>按馆整理</h2></div><span id="routeSummary"></span></div>
+        <div class="hall-grid" id="hallGrid"></div>
+        <div class="route-board" id="routeBoard"></div>
+      </section>
+
+      <section class="view" id="listView">
+        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>购买清单</h2></div><div class="view-switch"><button class="active" data-list-view="list" type="button">列表</button><button data-list-view="large" type="button">大图</button><button data-list-view="grid" type="button">双列</button></div><button class="text-button" id="resetFilters" type="button">清除筛选</button></div>
+        <div class="filters">
+          <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label>
+          <select id="statusFilter" aria-label="购买状态">
+            <option value="all">全部状态</option>
+            <option value="pending">待购买</option>
+            <option value="purchased">已购买</option>
+            <option value="soldout">已完售</option>
+            <option value="abandoned">已放弃</option>
+          </select>
+          <select id="intentFilter" aria-label="购买意向"><option value="all">全部意向</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="browse">只逛逛</option></select>
+          <select id="sortSelect" aria-label="排序方式">
+            <option value="custom">我的顺序（可拖动）</option>
+            <option value="route">按逛展路线</option>
+            <option value="heat">按热度</option>
+            <option value="name">按名称</option>
+          </select>
+        </div>
+        <div class="product-list" id="productList"></div>
+      </section>
+
+      <section class="view" id="organizeView">
+        <div class="section-heading"><div><p class="eyebrow">QUICK SORT</p><h2>整理心愿单</h2></div><span id="organizeSummary"></span></div>
+        <p class="organize-intro">不用打开详情，直接给每件制品选择购买意向。第一次整理建议从“尚未整理”开始。</p>
+        <div class="organize-toolbar">
+          <label class="search-box"><span>⌕</span><input id="organizeSearch" type="search" placeholder="搜索制品、摊位或社团"></label>
+          <select id="organizeFilter" aria-label="整理状态"><option value="unreviewed">尚未整理</option><option value="all">全部制品</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="browse">只逛逛</option></select>
+        </div>
+        <div class="bulk-intent"><span>将当前显示的制品统一设为：</span><div id="bulkIntentButtons"></div></div>
+        <div class="organize-list" id="organizeList"></div>
+      </section>
+
+      <section class="view" id="memoView">
+        <div class="section-heading"><div><p class="eyebrow">FIELD NOTES</p><h2>逛展备忘</h2></div><span id="memoSummary"></span></div>
+        <div class="memo-layout">
+          <form class="memo-form" id="memoForm">
+            <div class="memo-form-head"><h3 id="memoFormTitle">记一件想做的事</h3><p>无料、集章、摊宣和临场提醒都可以放进路线。</p><button id="manageMemoTypes" class="memo-type-manage" type="button">管理备忘类型</button></div>
+            <div class="memo-form-grid">
+              <label><span>类型</span><select id="memoType"><option value="freebie">无料</option><option value="stamp">盖章 / 集章</option><option value="promo">摊宣链接</option><option value="reminder">普通提醒</option></select></label>
+              <label><span>摊位号</span><input id="memoBooth" placeholder="例如：肆C03"></label>
+              <label class="wide"><span>标题</span><input id="memoTitle" required placeholder="例如：领取无料明信片"></label>
+              <label><span>老师 / 社团</span><input id="memoCircle" placeholder="可选"></label>
+              <label><span>摊宣平台</span><select id="memoLinkType"><option value="xiaohongshu">小红书</option><option value="weibo">微博</option><option value="other">其他链接</option></select></label>
+              <label class="wide"><span>摊宣链接</span><input id="memoLink" type="url" placeholder="https://…（可选）"></label>
+              <label class="wide"><span>备注</span><textarea id="memoNote" placeholder="领取条件、口令、时间、限量信息……"></textarea></label>
+              <label class="wide"><span>摊宣图片（上传后可截取）</span><input id="memoImageInput" type="file" accept="image/*"><small id="memoImageHint">未选择图片</small></label>
+            </div>
+            <button class="memo-submit" id="memoSubmit" type="submit">加入逛展备忘</button><button class="memo-cancel-edit" id="memoCancelEdit" type="button" hidden>取消编辑</button>
+          </form>
+          <div>
+            <div class="memo-filters" id="memoFilters"><button class="active" type="button" data-memo-filter="all">全部</button><button type="button" data-memo-filter="freebie">无料</button><button type="button" data-memo-filter="stamp">盖章</button><button type="button" data-memo-filter="promo">摊宣</button><button type="button" data-memo-filter="reminder">提醒</button></div>
+            <div class="memo-list" id="memoList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="manageView">
+        <div class="section-heading"><div><p class="eyebrow">DATA</p><h2>导入与同步</h2></div></div>
+        <div class="manage-grid">
+          <article class="manage-card featured">
+            <span class="step">01</span><h3>导入 CPP 清单</h3>
+            <p>支持 CPP 导出的 Excel，自动识别摊位号、展品、热度、筹备状态、原作和社团。</p>
+            <label class="file-button">选择 Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label>
+            <small>导入会合并同名展品，并保留已填写的价格和购买状态。</small>
+          </article>
+          <article class="manage-card">
+            <span class="step">02</span><h3>补全图片与描述</h3>
+            <p>在已登录的 CPP 页面运行同步书签，自动下载封面、作者与展品编号，不收集账号或密码。</p>
+            <a class="file-button secondary" href="sync-helper.html">打开图片同步助手</a>
+            <label class="inline-file-link">已有补全文件？导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label>
+            <small>同步文件下载后，回到这里导入即可显示图片。</small>
+          </article>
+          <article class="manage-card">
+            <span class="step">03</span><h3>备份与迁移</h3>
+            <p>清单数据只存于当前浏览器。换设备或清理浏览器前，请先导出备份。</p>
+            <div class="button-row"><button class="file-button secondary" id="exportButton" type="button">导出 JSON</button><label class="file-button secondary">恢复备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></div>
+          </article>
+        </div>
+        <details class="data-note"><summary>为什么需要一个同步书签？</summary><p>浏览器不允许本地网站直接读取 CPP 的登录状态。同步书签只在 allcpp.cn 页面内运行，因此能使用你已有的登录会话；它只读取 CPTF 的公开展品字段并生成本地 JSON，不读取密码。</p></details>
+      </section>
+    </main>
+  </div>
+
+  <div class="field-dock" aria-label="现场快捷操作">
+    <button id="quickBoothSearch" type="button"><span>⌕</span>查摊位</button>
+    <button id="quickPurchaseOpen" class="primary" type="button"><span>＋</span>记一笔</button>
+  </div>
+
+  <dialog id="itemDialog">
+    <form method="dialog" class="dialog-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <div id="dialogContent"></div>
+    </form>
+  </dialog>
+
+  <dialog id="boothDialog">
+    <form method="dialog" class="dialog-card booth-mode-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <div id="boothDialogContent"></div>
+    </form>
+  </dialog>
+
+  <dialog id="reportDialog">
+    <form method="dialog" class="dialog-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <div id="reportDialogContent"></div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-card settings-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <p class="eyebrow">SETTINGS</p><h2>设置</h2>
+      <label class="setting-row"><span><strong>显示已购买展品</strong><small>关闭后，路线中只保留还没买到的展品</small></span><input id="showPurchased" type="checkbox" checked></label>
+      <label class="setting-row budget-setting"><span><strong>总购物预算</strong><small>“只逛逛”的制品不计入计划预算</small></span><input id="budgetLimit" type="number" min="0" step="1" placeholder="不限"></label>
+      <button class="danger-button" id="resetDataButton" type="button">恢复初始 CPTF 清单</button>
+      <p class="credits">基于 <a href="https://github.com/Riiiiiii/cpg08-shopping-assistant" target="_blank" rel="noopener">cpg08-shopping-assistant</a> 改造。所有个人清单数据保存在本机。</p>
+    </form>
+  </dialog>
+
+  <dialog id="memoTypesDialog"><form method="dialog" class="dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">MEMO TYPES</p><h2>管理备忘类型</h2><div id="memoTypesList" class="memo-types-list"></div><div class="memo-type-add"><input id="newMemoTypeName" maxlength="12" placeholder="新类型名称"><button id="addMemoType" type="button">新增</button></div></form></dialog>
+
+  <dialog id="cropDialog"><form method="dialog" class="dialog-card crop-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">CROP IMAGE</p><h2>自由截取摊宣图片</h2><p>宽度和高度可以分别调整，横图、竖图或方图都可以。</p><canvas id="cropCanvas" width="720" height="480"></canvas><label class="crop-slider">截取宽度<input id="cropWidth" type="range" min="15" max="100" value="60"></label><label class="crop-slider">截取高度<input id="cropHeight" type="range" min="15" max="100" value="60"></label><label class="crop-slider">左右位置<input id="cropX" type="range" min="0" max="100" value="50"></label><label class="crop-slider">上下位置<input id="cropY" type="range" min="0" max="100" value="50"></label><button id="applyCrop" class="memo-submit" type="button">使用这个截取</button></form></dialog>
+
+  <dialog id="boothSearchDialog"><form method="dialog" class="dialog-card field-dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">QUICK FIND</p><h2>快速查摊位</h2><label class="search-box field-search"><span>⌕</span><input id="boothSearchInput" type="search" autocomplete="off" placeholder="输入 C13、老师、IP 或制品名"></label><div id="boothSearchResults" class="booth-search-results"></div></form></dialog>
+
+  <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><label class="wide quick-photo"><span>照片（可选）</span><input id="quickPurchasePhoto" type="file" accept="image/*" capture="environment"><small id="quickPurchasePhotoHint">可以直接拍照或从相册选择</small></label></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js?v=13"></script>
+</body>
+</html>
