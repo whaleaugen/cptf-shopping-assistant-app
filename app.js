@@ -1,6 +1,6 @@
 const EVENT = { id: 7166, exhibitId: 7940, name: 'COMICUP CITYTOUR FU', date: '2026-11-08T09:00:00+08:00', venue: '海峡国际会展中心' };
 const STORAGE_KEY = 'cptf-shopping-v1';
-const CATALOG_VERSION = '2026-10-28-v3';
+const CATALOG_VERSION = '2026-10-28-v3.1';
 const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
 const MEMO_TYPES = { freebie: '无料', stamp: '盖章', promo: '摊宣', reminder: '提醒' };
