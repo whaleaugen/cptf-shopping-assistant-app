@@ -17,16 +17,16 @@
       <div class="sync-steps">
         <div class="sync-step"><b>1</b><div><strong>保存同步书签</strong><small>电脑端：把下方绿色按钮拖到浏览器书签栏。拖动不方便时，也可以点击“复制书签代码”，新建书签后粘贴到网址栏。</small></div></div>
         <div class="sync-step"><b>2</b><div><strong>打开 CPP 活动页并登录</strong><small>进入 COMICUP CITYTOUR FU 的官方页面，确认浏览器里已经登录 CPP。</small></div></div>
-        <div class="sync-step"><b>3</b><div><strong>点击“同步 CPTF 图片”书签</strong><small>页面右上角会显示同步进度，完成后自动下载 `CPTF-CPP-images.json`。</small></div></div>
+        <div class="sync-step"><b>3</b><div><strong>点击“同步 CPTF 图片”书签</strong><small>新版会自动比较无分类与八大类两种查询、失败重试并按制品编号去重；完成后下载 `CPTF-CPP-images.json`。</small></div></div>
         <div class="sync-step"><b>4</b><div><strong>回购物助手导入</strong><small>在“导入与同步”里选择刚下载的补全 JSON，匹配成功的展品会立即显示封面。</small></div></div>
       </div>
       <a class="bookmarklet disabled" id="bookmarklet" href="#" draggable="true">正在生成同步书签…</a>
       <button class="copy-bookmarklet" id="copyButton" type="button" disabled>复制书签代码</button>
       <div class="sync-status" id="syncStatus">载入同步脚本中</div>
-      <div class="privacy-box"><strong>隐私说明：</strong>同步脚本只向 `www.allcpp.cn/api/doujinshi/search.do` 发起请求，活动展品 ID 固定为 7940；结果直接由浏览器下载到本机，不发送到本工具或其他服务器。</div>
+      <div class="privacy-box"><strong>隐私说明：</strong>同步脚本只向 `www.allcpp.cn/api/doujinshi/search.do` 发起请求，活动展品 ID 固定为 7940；结果直接由浏览器下载到本机，不发送到本工具或其他服务器。下载文件中的 `syncReport` 会记录接口总数、实际抓取数和分类统计，方便确认是否完整。</div>
     </section>
   </main>
-  <script src="sync-bookmarklet.js"></script>
+  <script src="sync-bookmarklet.js?v=2"></script>
   <script>
     (() => {
       const link = document.getElementById('bookmarklet'), button = document.getElementById('copyButton'), status = document.getElementById('syncStatus');
