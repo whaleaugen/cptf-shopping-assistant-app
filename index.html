@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <div class="app-shell">
@@ -118,16 +118,16 @@
         <div class="manage-grid">
           <article class="manage-card featured">
             <span class="step">01</span><h3>导入 CPP 清单</h3>
-            <p>支持 CPP 导出的 Excel，自动识别摊位号、展品、热度、筹备状态、原作和社团。</p>
+            <p>支持 CPP 导出的 Excel；导入后会自动从 20115 件 CPTF 公共资料中匹配图片、作者和热度。</p>
             <label class="file-button">选择 Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label>
             <small>导入会合并同名展品，并保留已填写的价格和购买状态。</small>
           </article>
           <article class="manage-card">
-            <span class="step">02</span><h3>补全图片与描述</h3>
-            <p>在已登录的 CPP 页面运行同步书签，自动下载封面、作者与展品编号，不收集账号或密码。</p>
-            <a class="file-button secondary" href="sync-helper.html">打开图片同步助手</a>
-            <label class="inline-file-link">已有补全文件？导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label>
-            <small>同步文件下载后，回到这里导入即可显示图片。</small>
+            <span class="step">02</span><h3>图片自动补全</h3>
+            <p>公共资料库会在导入 Excel 后自动运行，朋友无需登录 CPP、保存书签或上传同步 JSON。</p>
+            <a class="file-button secondary" href="sync-helper.html">维护公共资料库</a>
+            <label class="inline-file-link">故障备用：手动导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label>
+            <small>公共资料只包含 CPP 已公开字段；每个人的心愿单仍仅保存在自己的设备中。</small>
           </article>
           <article class="manage-card">
             <span class="step">03</span><h3>备份与迁移</h3>
@@ -186,6 +186,6 @@
   <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><label class="wide quick-photo"><span>照片（可选）</span><input id="quickPurchasePhoto" type="file" accept="image/*" capture="environment"><small id="quickPurchasePhotoHint">可以直接拍照或从相册选择</small></label></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
