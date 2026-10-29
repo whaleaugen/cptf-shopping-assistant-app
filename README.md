@@ -30,7 +30,7 @@
 - 导入 CPP 导出的 `.xlsx` 并合并更新
 - CPP 同步书签：自动比较完整查询范围、分页重试、按编号去重，并输出完整性报告
 - 导入图片/描述补全 JSON
-- 内置 20115 件 CPTF 公开制品资料库；导入 Excel 后自动匹配图片、作者和热度
+- 内置 20,370 件 CPTF 公开制品资料库（公开资料更新至 2026-10-29）；导入 Excel 后自动匹配图片、作者和热度
 - JSON 备份与恢复
 - PWA 离线缓存
 
@@ -67,3 +67,4 @@ CPP 的展品搜索接口依赖登录态，不应在公开网页中收集用户�
 - 购买状态、价格和补全信息默认只写入浏览器 `localStorage`。
 
 项目基于 [Riiiiiii/cpg08-shopping-assistant](https://github.com/Riiiiiii/cpg08-shopping-assistant) 的离线购物助手思路重制，并保留原仓库许可证。
+
