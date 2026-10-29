@@ -4,7 +4,8 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const CATALOG_VERSION = '2026-10-28-v3.1';
+const CATALOG_VERSION = '2026-10-29-v4';
+const CATALOG_UPDATED_AT = '2026 年 10 月 29 日';
 const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const TRANSFER_API = 'https://cptf-transfer.whale-keyjoon.workers.dev';
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
@@ -31,6 +32,7 @@ let selectedItemIds = new Set();
 let editingIntentItemId = '';
 let previousManageSort = 'custom';
 if(IS_DEMO){document.body.classList.add('demo-mode');document.getElementById('demoBanner').hidden=false;}
+document.getElementById('catalogUpdatedAt').textContent = CATALOG_UPDATED_AT;
 
 function cloneSeed() { return SEED_ITEMS.map(item => ({ ...item })); }
 function demoCover(label, width, height, colors) { const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="${colors[0]}"/><stop offset="1" stop-color="${colors[1]}"/></linearGradient></defs><rect width="100%" height="100%" rx="24" fill="url(#g)"/><circle cx="${width*.7}" cy="${height*.3}" r="${Math.min(width,height)*.18}" fill="white" opacity=".35"/><text x="50%" y="48%" text-anchor="middle" font-family="sans-serif" font-size="${Math.max(22,Math.min(width,height)*.1)}" fill="#463b36">${label}</text><text x="50%" y="58%" text-anchor="middle" font-family="sans-serif" font-size="${Math.max(12,Math.min(width,height)*.045)}" fill="#655650">CPTF DEMO</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
@@ -166,8 +168,9 @@ function renderList() {
     const manageTools = manageMode ? `<input class="manage-checkbox" type="checkbox" data-select-item="${item.id}" ${selectedItemIds.has(item.id) ? 'checked' : ''} aria-label="选择${esc(item.name)}">` : '';
     const dragHandle = manageMode ? `<span class="touch-drag" ${sortingDisabled ? '' : `data-drag-id="${item.id}"`} aria-label="${sortingDisabled ? '筛选时不可排序' : '拖动排序'}" role="button" tabindex="0">⠿</span>` : '';
     const typeTag = item.type ? `<span class="tag type-tag">${esc(item.type)}</span>` : '<span class="tag type-tag muted">未分类</span>';
+    const heatTag = item.heat !== null && item.heat !== undefined && item.heat !== '' ? `<span class="tag heat">热度 ${esc(item.heat)}</span>` : '';
     const intentControl = manageMode ? `<span class="tag intent-tag ${item.intentReviewed ? item.intent : 'undecided'}">${item.intentReviewed ? esc(INTENTS[item.intent] || '想买') : '待决定'}</span>` : `<button class="tag intent-tag ${item.intentReviewed ? item.intent : 'undecided'}" data-quick-intent="${item.id}" type="button">${item.intentReviewed ? esc(INTENTS[item.intent] || '想买') : '待决定'}</button>`;
-    return `<article class="product-card ${isItemStarred(item.id) ? 'starred' : ''} intent-${item.intent}" draggable="${manageMode && !sortingDisabled}" data-open-id="${item.id}">${manageTools}${coverMarkup(item)}<div class="product-copy"><h3>${isItemStarred(item.id) ? '<span class="star-inline">★</span>' : ''}${esc(item.name)}</h3><p>${esc(item.boothRaw)} · ${esc(item.circle)}${item.source ? ` · ${esc(item.source)}` : ''}</p><div class="product-summary"><span>${priceText}</span>${intentControl}${typeTag}${statusTag}</div></div>${dragHandle}${manageMode ? '' : `<button class="star-button ${isItemStarred(item.id) ? 'active' : ''}" data-star-item="${item.id}" type="button" aria-label="${isItemStarred(item.id) ? '取消重点制品' : '设为重点制品'}">★</button>`}</article>`;
+    return `<article class="product-card ${isItemStarred(item.id) ? 'starred' : ''} intent-${item.intent}" draggable="${manageMode && !sortingDisabled}" data-open-id="${item.id}">${manageTools}${coverMarkup(item)}<div class="product-copy"><h3>${isItemStarred(item.id) ? '<span class="star-inline">★</span>' : ''}${esc(item.name)}</h3><p>${esc(item.boothRaw)} · ${esc(item.circle)}${item.source ? ` · ${esc(item.source)}` : ''}</p><div class="product-summary"><span>${priceText}</span>${intentControl}${typeTag}${heatTag}${statusTag}</div></div>${dragHandle}${manageMode ? '' : `<button class="star-button ${isItemStarred(item.id) ? 'active' : ''}" data-star-item="${item.id}" type="button" aria-label="${isItemStarred(item.id) ? '取消重点制品' : '设为重点制品'}">★</button>`}</article>`;
   }).join('') : noMatches;
   list.querySelectorAll('[data-open-id]').forEach(card => card.addEventListener('click', event => { if (!manageMode && !event.target.closest('input,button,select,[role="button"]')) openItem(card.dataset.openId); }));
   list.querySelectorAll('[data-price-id]').forEach(input => input.addEventListener('change', () => { const item = state.items.find(row => row.id === input.dataset.priceId); item.price = input.value === '' ? null : Number(input.value); saveState(); }));
