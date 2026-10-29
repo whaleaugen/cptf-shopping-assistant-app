@@ -8,9 +8,10 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
+  <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#top" aria-label="返回顶部">
@@ -35,13 +36,15 @@
         <div><strong>官方场地图暂未公布</strong><p>当前按 Excel 摊位号提供馆别和字母区导航。地图公布后可直接替换，不影响你的购买记录。</p></div>
       </section>
 
-      <section class="stats" aria-label="清单统计">
-        <article><span>展品</span><strong id="statItems">0</strong></article>
-        <article><span>摊位</span><strong id="statBooths">0</strong></article>
-        <article><span id="statBudgetLabel">计划金额</span><strong id="statBudget">¥0</strong></article>
-        <article><span>实际消费</span><strong id="statSpent">¥0</strong></article>
+      <section class="stats budget-stats" aria-label="预算统计">
+        <article><span>预算上限</span><strong id="statBudgetLimit">未设置</strong></article>
+        <article><span>已花金额</span><strong id="statSpent">¥0</strong></article>
+        <article><span>待买计划</span><strong id="statBudget">¥0</strong></article>
+        <article><span>预计合计</span><strong id="statProjected">¥0</strong></article>
+        <article id="remainingCard"><span>剩余可花</span><strong id="statRemaining">未设置预算</strong></article>
+        <article><span>纠结备选</span><strong id="statMaybe">¥0</strong></article>
       </section>
-      <div class="budget-detail"><span>纠结备选 <b id="statMaybe">¥0</b></span><span>未填写价格 <b id="statNoPrice">0</b> 件</span><span>待购买 <b id="statPending">0</b> 件</span></div>
+      <div class="budget-detail"><span>未填写价格 <b id="statNoPrice">0</b> 件</span><span>待购买 <b id="statPending">0</b> 件</span><span>共 <b id="statItems">0</b> 件制品 · <b id="statBooths">0</b> 个摊位</span></div>
 
       <nav class="view-tabs" aria-label="主要视图">
         <button class="view-tab active" type="button" data-view="list">心愿单</button>
@@ -56,12 +59,12 @@
       </section>
 
       <section class="view active" id="listView">
-        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="view-switch"><button class="active" data-list-view="list" type="button">列表</button><button data-list-view="grid" type="button">双列</button></div><button class="text-button" id="resetFilters" type="button">清除筛选</button></div>
+        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="wishlist-heading-actions"><button class="text-button" id="openOrganizer" type="button">整理心愿单</button><button class="text-button" id="toggleManage" type="button">管理</button></div></div>
         <button id="organizePrompt" class="organize-prompt" type="button" hidden><strong><span id="unreviewedCount">0</span> 件待整理</strong><span>开始决定购买意向 →</span></button>
-        <div class="wishlist-tools"><button id="openOrganizer" type="button">整理心愿单</button></div>
         <div class="filters">
           <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label>
-          <select id="statusFilter" aria-label="购买状态">
+          <button class="filter-toggle" id="filterToggle" type="button">筛选 <span id="activeFilterCount"></span></button>
+          <div class="filter-options" id="filterOptions" hidden><select id="statusFilter" aria-label="购买状态">
             <option value="all">全部状态</option>
             <option value="pending">待购买</option>
             <option value="purchased">已购买</option>
@@ -74,8 +77,10 @@
             <option value="route">按逛展路线</option>
             <option value="heat">按热度</option>
             <option value="name">按名称</option>
-          </select>
+          </select><button class="reset-filter-button" id="resetFilters" type="button">清除筛选</button></div>
         </div>
+        <div class="manage-bar" id="manageBar" hidden><strong>管理心愿单</strong><span>拖动左侧手柄调整顺序，或选择后删除。</span><button id="deleteSelected" type="button" disabled>删除所选</button><button id="finishManage" type="button">完成</button></div>
+        <div class="first-use" id="firstUse" hidden><div class="first-use-mark">♡</div><h3>还没有心愿单</h3><p>导入 CPP Excel 后，会自动匹配制品图片和摊位信息。</p><div><button id="emptyImportExcel" type="button">导入 CPP Excel</button><button id="emptyRestoreBackup" type="button">恢复 JSON 备份</button><button id="emptyFollowBooth" type="button">先关注一个摊位</button></div></div>
         <div class="product-list" id="productList"></div>
       </section>
 
@@ -121,6 +126,7 @@
     <button id="quickBoothSearch" type="button"><span>⌕</span>查摊位</button>
     <button id="quickPurchaseOpen" class="primary" type="button"><span>＋</span>记一笔</button>
   </div>
+  <button class="view-fab" id="viewFab" type="button" aria-label="切换为双列视图" title="切换视图">▦</button>
 
   <dialog id="itemDialog">
     <form method="dialog" class="dialog-card">
@@ -166,6 +172,7 @@
   <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
+
