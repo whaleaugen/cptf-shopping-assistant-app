@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -35,6 +35,7 @@
         <span class="notice-icon">i</span>
         <div><strong>官方场地图暂未公布</strong><p>当前按 Excel 摊位号提供馆别和字母区导航。地图公布后可直接替换，不影响你的购买记录。</p></div>
       </section>
+      <div class="catalog-freshness" role="status"><span>↻</span> 公共制品资料更新至 <strong id="catalogUpdatedAt">2026 年 10 月 29 日</strong><small>图片、作者、热度等由公开资料补全</small></div>
 
       <section class="stats budget-stats" aria-label="预算统计">
         <article><span>预算上限</span><strong id="statBudgetLimit">未设置</strong></article>
@@ -179,7 +180,7 @@
   <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
 
