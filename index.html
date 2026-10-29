@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -71,15 +71,17 @@
             <option value="soldout">已完售</option>
             <option value="abandoned">已放弃</option>
           </select>
-          <select id="intentFilter" aria-label="购买意向"><option value="all">全部意向</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="browse">只逛逛</option></select>
+          <select id="intentFilter" aria-label="购买意向"><option value="all">全部意向</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="freebie">无料</option><option value="browse">只逛逛</option></select>
+          <select id="typeFilter" aria-label="制品类型"><option value="all">全部类型</option></select>
           <select id="sortSelect" aria-label="排序方式">
             <option value="custom">我的顺序（可拖动）</option>
+            <option value="priority">按优先级</option>
             <option value="route">按逛展路线</option>
             <option value="heat">按热度</option>
             <option value="name">按名称</option>
           </select><button class="reset-filter-button" id="resetFilters" type="button">清除筛选</button></div>
         </div>
-        <div class="manage-bar" id="manageBar" hidden><strong>管理心愿单</strong><span>拖动左侧手柄调整顺序，或选择后删除。</span><button id="deleteSelected" type="button" disabled>删除所选</button><button id="finishManage" type="button">完成</button></div>
+        <div class="manage-bar" id="manageBar" hidden><strong>管理心愿单</strong><span id="manageHint">拖动右侧手柄调整顺序，或勾选后删除。</span><button id="selectAllItems" type="button">全选</button><button id="deleteSelected" type="button" disabled>删除所选</button><button id="finishManage" type="button">完成</button></div>
         <div class="first-use" id="firstUse" hidden><div class="first-use-mark">♡</div><h3>还没有心愿单</h3><p>导入 CPP Excel 后，会自动匹配制品图片和摊位信息。</p><div><button id="emptyImportExcel" type="button">导入 CPP Excel</button><button id="emptyRestoreBackup" type="button">恢复 JSON 备份</button><button id="emptyFollowBooth" type="button">先关注一个摊位</button></div></div>
         <div class="product-list" id="productList"></div>
       </section>
@@ -89,7 +91,7 @@
         <p class="organize-intro">不用打开详情，直接给每件制品选择购买意向。第一次整理建议从“尚未整理”开始。</p>
         <div class="organize-toolbar">
           <label class="search-box"><span>⌕</span><input id="organizeSearch" type="search" placeholder="搜索制品、摊位或社团"></label>
-          <select id="organizeFilter" aria-label="整理状态"><option value="unreviewed">尚未整理</option><option value="all">全部制品</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="browse">只逛逛</option></select>
+          <select id="organizeFilter" aria-label="整理状态"><option value="unreviewed">尚未整理</option><option value="all">全部制品</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="freebie">无料</option><option value="browse">只逛逛</option></select>
         </div>
         <div class="bulk-intent"><span>将当前显示的制品统一设为：</span><div id="bulkIntentButtons"></div></div>
         <div class="organize-list" id="organizeList"></div>
@@ -158,7 +160,7 @@
       <label class="setting-row visit-date-setting"><span><strong>我的逛展日</strong><small>只影响个人倒计时，以后可以随时修改</small></span><input id="visitDate" type="date" min="2026-11-06" max="2026-11-08"></label>
       <section class="catalog-settings"><div><strong>图片自动补全</strong><small>导入 Excel 后会自动运行；缺图时也可以在这里重新匹配或手动导入维护文件。</small></div><button id="refreshCatalogButton" type="button">重新自动匹配</button><a href="sync-helper.html">维护公共资料库</a><label>手动导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label></section>
       <section class="settings-data"><h3>数据管理</h3><p>个人清单、图片、社媒和备忘优先保存在当前设备。</p><label class="settings-action primary">导入 CPP Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label><button class="settings-action" id="exportButton" type="button">导出完整备份</button><label class="settings-action">恢复 JSON 备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></section>
-      <section class="transfer-settings"><div><h3>跨设备迁移</h3><p>生成 72 小时有效的加密迁移码，在手机或另一台电脑恢复完整存档。</p></div><button id="createTransferButton" type="button">生成迁移码</button><div class="transfer-code-box" id="transferCodeBox" hidden><span>迁移码</span><strong id="transferCode"></strong><button id="copyTransferCode" type="button">复制</button><small>请像保管密码一样保管它。恢复成功后云端副本会删除。</small></div><div class="transfer-restore"><input id="transferCodeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="19" placeholder="输入迁移码 XXXX-XXXX-XXXX-XXXX"><button id="restoreTransferButton" type="button">从迁移码恢复</button></div><p class="transfer-status" id="transferStatus" aria-live="polite"></p></section>
+      <section class="transfer-settings"><div><h3>跨设备迁移</h3><p>生成 72 小时有效的加密迁移码，在手机或另一台电脑恢复完整存档。</p><p class="transfer-network-note">如果生成或恢复失败，可能需要调整网络环境；不方便使用相关网络工具时，建议改用上方的 JSON 备份迁移。</p></div><button id="createTransferButton" type="button">生成迁移码</button><div class="transfer-code-box" id="transferCodeBox" hidden><span>迁移码</span><strong id="transferCode"></strong><button id="copyTransferCode" type="button">复制</button><small>请像保管密码一样保管它。恢复完成后会尝试删除云端临时副本。</small></div><div class="transfer-restore"><input id="transferCodeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="19" placeholder="输入迁移码 XXXX-XXXX-XXXX-XXXX"><button id="restoreTransferButton" type="button">从迁移码恢复</button></div><p class="transfer-status" id="transferStatus" aria-live="polite"></p></section>
       <button class="danger-button" id="resetDataButton" type="button">恢复初始 CPTF 清单</button>
       <p class="credits">基于 <a href="https://github.com/Riiiiiii/cpg08-shopping-assistant" target="_blank" rel="noopener">cpg08-shopping-assistant</a> 改造。所有个人清单数据保存在本机。</p>
     </form>
@@ -172,8 +174,12 @@
 
   <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
 
+  <dialog id="intentDialog"><form method="dialog" class="dialog-card intent-dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">PURCHASE INTENT</p><h2>选择购买意向</h2><p id="intentDialogName"></p><div id="intentDialogChoices" class="intent-dialog-choices"></div></form></dialog>
+
+  <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>
 
