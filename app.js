@@ -4,10 +4,10 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const APP_RELEASE = '0.26.1';
+const APP_RELEASE = '0.26.2';
 const CHANGELOG_SEEN_KEY = IS_DEMO ? 'cptf-changelog-seen-demo-v1' : 'cptf-changelog-seen-v1';
-const CATALOG_VERSION = '2026-10-29-v4';
-const CATALOG_UPDATED_AT = '2026 年 10 月 29 日';
+const CATALOG_VERSION = '2026-10-30-v1';
+const CATALOG_UPDATED_AT = '2026 年 10 月 30 日';
 const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const TRANSFER_API = 'https://cptf-transfer.whale-keyjoon.workers.dev';
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
@@ -18,6 +18,10 @@ const INTENT_RANK = { must: 0, want: 1, maybe: 2, freebie: 3, browse: 4 };
 const BOOTH_STATES = { pending: '未到达', visited: '已逛', return: '需要返场', queue: '排队中', away: '摊主暂离', skipped: '已跳过' };
 const SEED_ITEMS = [];
 const CHANGELOG = [
+  { version: '0.26.2', title: '公共资料与更新提醒', changes: [
+    '公共制品资料更新至 10 月 30 日，新抓取资料优先，并保留接口暂时漏回的旧记录。',
+    '自动弹出的本次更新改为精简摘要；设置里的更新日志继续保留完整历史。'
+  ]},
   { version: '0.26.1', title: '现场记账与卡片操作修复', changes: [
     '修复编辑账单时新增关联制品偶尔没有保存，以及新建账单继承旧草稿的问题。',
     '电脑列表加入居中的三点菜单，手机列表继续使用左滑操作。',
@@ -79,14 +83,16 @@ if(IS_DEMO){document.body.classList.add('demo-mode');document.getElementById('de
 document.getElementById('catalogUpdatedAt').textContent = CATALOG_UPDATED_AT;
 document.getElementById('currentReleaseLabel').textContent = `v${APP_RELEASE}`;
 
-function renderChangelog() {
-  document.getElementById('changelogContent').innerHTML = CHANGELOG.slice(0,3).map((release, index) => {
-    const details = `<ul>${release.changes.map(change => `<li>${esc(change)}</li>`).join('')}</ul>`;
+function renderChangelog(compact=false) {
+  const releases=compact?CHANGELOG.slice(0,1):CHANGELOG;
+  document.getElementById('changelogContent').innerHTML = releases.map((release, index) => {
+    const changes=compact?release.changes.slice(0,3):release.changes;
+    const details = `<ul>${changes.map(change => `<li>${esc(change)}</li>`).join('')}</ul>`;
     if (index === 0) return `<article class="changelog-release current"><div class="changelog-release-head"><span>最新版本</span><time>${esc(release.version)}</time></div><h3>${esc(release.title)}</h3>${details}</article>`;
     return `<details class="changelog-release"><summary><span><time>${esc(release.version)}</time>${esc(release.title)}</span><b>查看</b></summary>${details}</details>`;
   }).join('');
 }
-function openChangelog() { renderChangelog(); document.getElementById('changelogDialog').showModal(); }
+function openChangelog(compact=false) { renderChangelog(compact); document.getElementById('changelogDialog').classList.toggle('compact',compact); document.getElementById('changelogDialog').showModal(); }
 function markChangelogSeen() { try { localStorage.setItem(CHANGELOG_SEEN_KEY, APP_RELEASE); } catch (_) {} }
 
 function cloneSeed() { return SEED_ITEMS.map(item => ({ ...item })); }
@@ -557,7 +563,7 @@ document.getElementById('dismissRestoreUndo').addEventListener('click',()=>{docu
 document.querySelectorAll('[data-list-view]').forEach(button => button.addEventListener('click', () => { state.listView = button.dataset.listView; document.querySelectorAll('[data-list-view]').forEach(row => row.classList.toggle('active', row === button)); saveState(); renderList(); }));
 document.querySelectorAll('[data-organize-view]').forEach(button => button.addEventListener('click', () => { state.organizerView = button.dataset.organizeView; document.querySelectorAll('[data-organize-view]').forEach(row => row.classList.toggle('active', row === button)); saveState(); renderOrganizer(); }));
 document.getElementById('settingsButton').addEventListener('click', () => document.getElementById('settingsDialog').showModal());
-document.getElementById('openChangelog').addEventListener('click', () => { document.getElementById('settingsDialog').close(); openChangelog(); });
+document.getElementById('openChangelog').addEventListener('click', () => { document.getElementById('settingsDialog').close(); openChangelog(false); });
 document.getElementById('changelogDialog').addEventListener('close', markChangelogSeen);
 document.getElementById('refreshCatalogButton').addEventListener('click', async () => { try { catalogPromise=null; await enrichFromPublicCatalog(true); } catch (error) { console.error(error); toast('公共资料库暂时无法连接，请稍后重试'); } });
 document.getElementById('showPurchased').checked = state.showPurchased;
@@ -592,5 +598,5 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
 refreshMemoTypes(); updateFilterUi(); document.querySelectorAll('[data-list-view]').forEach(button => button.classList.toggle('active', button.dataset.listView === (state.listView || 'list'))); document.querySelectorAll('[data-organize-view]').forEach(button => button.classList.toggle('active', button.dataset.organizeView === (state.organizerView || 'list'))); renderCountdown(); renderStats(); renderRoute(); renderList(); renderOrganizer(); renderMemos();activateView('list',false);
 if(!IS_DEMO){try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY));if(snapshot?.data&&Date.now()-Number(snapshot.createdAt)<86400000)showRestoreUndo();else localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}catch(_){localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}}
 if(!IS_DEMO){const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);}
-if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog();},650);}catch(_){}}
+if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}}
 if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
