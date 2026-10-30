@@ -1,5 +1,5 @@
-const CACHE = 'cptf-shopping-v30';
-const ASSETS = ['./','./index.html','./sync-helper.html','./sync-bookmarklet.js?v=3','./styles.css?v=26','./app.js?v=24','./manifest.webmanifest','./icons/icon.svg'];
+const CACHE = 'cptf-shopping-v31';
+const ASSETS = ['./','./index.html','./sync-helper.html','./sync-bookmarklet.js?v=3','./styles.css?v=27','./app.js?v=25','./manifest.webmanifest','./icons/icon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', event => {
