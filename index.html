@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=24">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -161,9 +161,19 @@
       <label class="setting-row visit-date-setting"><span><strong>我的逛展日</strong><small>只影响个人倒计时，以后可以随时修改</small></span><input id="visitDate" type="date" min="2026-11-06" max="2026-11-08"></label>
       <section class="catalog-settings"><div><strong>图片自动补全</strong><small>导入 Excel 后会自动运行；缺图时也可以在这里重新匹配或手动导入维护文件。</small></div><button id="refreshCatalogButton" type="button">重新自动匹配</button><a href="sync-helper.html">维护公共资料库</a><label>手动导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label></section>
       <section class="settings-data"><h3>数据管理</h3><p>个人清单、图片、社媒和备忘优先保存在当前设备。</p><label class="settings-action primary">导入 CPP Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label><button class="settings-action" id="exportButton" type="button">导出完整备份</button><label class="settings-action">恢复 JSON 备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></section>
+      <section class="settings-data changelog-setting"><div><h3>更新日志</h3><p>看看最近新增了什么，以及使用方式有哪些变化。</p></div><button class="settings-action" id="openChangelog" type="button">查看更新日志 <span id="currentReleaseLabel"></span></button></section>
       <section class="transfer-settings"><div><h3>跨设备迁移</h3><p>生成 72 小时有效的加密迁移码，在手机或另一台电脑恢复完整存档。</p><p class="transfer-network-note">如果生成或恢复失败，可能需要调整网络环境；不方便使用相关网络工具时，建议改用上方的 JSON 备份迁移。</p></div><button id="createTransferButton" type="button">生成迁移码</button><div class="transfer-code-box" id="transferCodeBox" hidden><span>迁移码</span><strong id="transferCode"></strong><button id="copyTransferCode" type="button">复制</button><small>请像保管密码一样保管它。恢复完成后会尝试删除云端临时副本。</small></div><div class="transfer-restore"><input id="transferCodeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="19" placeholder="输入迁移码 XXXX-XXXX-XXXX-XXXX"><button id="restoreTransferButton" type="button">从迁移码恢复</button></div><p class="transfer-status" id="transferStatus" aria-live="polite"></p></section>
       <button class="danger-button" id="resetDataButton" type="button">恢复初始 CPTF 清单</button>
       <p class="credits">基于 <a href="https://github.com/Riiiiiii/cpg08-shopping-assistant" target="_blank" rel="noopener">cpg08-shopping-assistant</a> 改造。所有个人清单数据保存在本机。</p>
+    </form>
+  </dialog>
+
+  <dialog id="changelogDialog">
+    <form method="dialog" class="dialog-card changelog-card">
+      <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
+      <p class="eyebrow">WHAT'S NEW</p><h2>更新日志</h2>
+      <div id="changelogContent" class="changelog-content"></div>
+      <button class="changelog-acknowledge" value="confirm">知道啦</button>
     </form>
   </dialog>
 
@@ -180,7 +190,7 @@
   <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
 
