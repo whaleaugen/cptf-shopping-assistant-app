@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -39,13 +39,12 @@
 
       <section class="stats budget-stats" aria-label="预算统计">
         <article><span>预算上限</span><strong id="statBudgetLimit">未设置</strong></article>
-        <article><span>已花金额</span><strong id="statSpent">¥0</strong></article>
-        <article><span>待买计划</span><strong id="statBudget">¥0</strong></article>
-        <article><span>预计合计</span><strong id="statProjected">¥0</strong></article>
-        <article id="remainingCard"><span>剩余可花</span><strong id="statRemaining">未设置预算</strong></article>
-        <article><span>纠结备选</span><strong id="statMaybe">¥0</strong></article>
+        <article><span>个人已花 <button class="info-dot" id="spentInfo" type="button" aria-label="查看个人已花说明">?</button></span><strong id="statSpent">¥0</strong></article>
+        <article id="remainingCard"><span id="remainingLabel">还可花</span><strong id="statRemaining">未设置预算</strong></article>
       </section>
-      <div class="budget-detail"><span>未填写价格 <b id="statNoPrice">0</b> 件</span><span>待购买 <b id="statPending">0</b> 件</span><span>共 <b id="statItems">0</b> 件制品 · <b id="statBooths">0</b> 个摊位</span></div>
+      <div class="budget-progress" id="budgetProgress" hidden><i id="confirmedProgress"></i><i id="pendingProgress"></i></div>
+      <div class="budget-alert" id="budgetPendingAlert" hidden></div>
+      <div class="budget-detail"><span>实际经手 <b id="statHandled">¥0</b></span><button id="openExpenses" type="button">消费记录 <b id="statExpenseCount">0</b> 笔</button><button id="openSpendingRank" type="button">摊位消费排行</button><span>心愿制品 <b id="statItems">0</b> 件 · <b id="statBooths">0</b> 个摊位</span></div>
 
       <nav class="view-tabs" aria-label="主要视图">
         <button class="view-tab active" type="button" data-view="list">心愿单</button>
@@ -62,26 +61,9 @@
       <section class="view active" id="listView">
         <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="wishlist-heading-actions"><button class="text-button" id="openOrganizer" type="button">整理心愿单</button><button class="text-button" id="toggleManage" type="button">管理</button></div></div>
         <button id="organizePrompt" class="organize-prompt" type="button" hidden><strong><span id="unreviewedCount">0</span> 件待整理</strong><span>开始决定购买意向 →</span></button>
-        <div class="filters">
-          <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label>
-          <button class="filter-toggle" id="filterToggle" type="button">筛选 <span id="activeFilterCount"></span></button>
-          <div class="filter-options" id="filterOptions" hidden><select id="statusFilter" aria-label="购买状态">
-            <option value="all">全部状态</option>
-            <option value="pending">待购买</option>
-            <option value="purchased">已购买</option>
-            <option value="soldout">已完售</option>
-            <option value="abandoned">已放弃</option>
-          </select>
-          <select id="intentFilter" aria-label="购买意向"><option value="all">全部意向</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="freebie">无料</option><option value="browse">只逛逛</option></select>
-          <select id="typeFilter" aria-label="制品类型"><option value="all">全部类型</option></select>
-          <select id="sortSelect" aria-label="排序方式">
-            <option value="custom">我的顺序（可拖动）</option>
-            <option value="priority">按优先级</option>
-            <option value="route">按逛展路线</option>
-            <option value="heat">按热度</option>
-            <option value="name">按名称</option>
-          </select><button class="reset-filter-button" id="resetFilters" type="button">清除筛选</button></div>
-        </div>
+        <div class="wishlist-query"><label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label></div>
+        <div class="sort-filter-bar"><div class="sort-tabs" id="sortTabs"><button type="button" data-sort="smart">综合</button><button type="button" data-sort="recent">最近加入</button><button type="button" data-sort="route">按摊位</button><button type="button" data-sort="custom">我的顺序</button><select id="sortMore" aria-label="更多排序"><option value="">更多排序</option><option value="heat">按热度</option><option value="name">按名称</option></select></div><button class="filter-toggle" id="filterToggle" type="button">☷ 筛选 <span id="activeFilterCount"></span></button></div>
+        <div class="active-filter-chips" id="activeFilterChips" hidden></div>
         <div class="manage-bar" id="manageBar" hidden><strong>管理心愿单</strong><span id="manageHint">拖动右侧手柄调整顺序，或勾选后删除。</span><button id="selectAllItems" type="button">全选</button><button id="deleteSelected" type="button" disabled>删除所选</button><button id="finishManage" type="button">完成</button></div>
         <div class="first-use" id="firstUse" hidden><div class="first-use-mark">♡</div><h3>还没有心愿单</h3><p>导入 CPP Excel 后，会自动匹配制品图片和摊位信息。</p><div><button id="emptyImportExcel" type="button">导入 CPP Excel</button><button id="emptyRestoreBackup" type="button">恢复 JSON 备份</button><button id="emptyFollowBooth" type="button">先关注一个摊位</button></div></div>
         <div class="product-list" id="productList"></div>
@@ -124,6 +106,8 @@
 
     </main>
   </div>
+
+  <dialog id="filterDrawer" class="filter-drawer-dialog"><form method="dialog" class="filter-drawer"><header><div><p class="eyebrow">FILTER</p><h2>筛选条件</h2></div><button value="cancel" aria-label="关闭">×</button></header><div id="filterDrawerContent" class="filter-drawer-content"></div><footer><button id="resetFilters" type="button">重置</button><button id="applyFilters" value="confirm">查看 <span id="filterResultCount">0</span> 件结果</button></footer></form></dialog>
 
   <div class="field-dock" aria-label="现场快捷操作">
     <button id="quickBoothSearch" type="button"><span>⌕</span>查摊位</button>
@@ -183,14 +167,18 @@
 
   <dialog id="boothSearchDialog"><form method="dialog" class="dialog-card field-dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">QUICK FIND</p><h2>快速查摊位</h2><label class="search-box field-search"><span>⌕</span><input id="boothSearchInput" type="search" autocomplete="off" placeholder="输入 C13、老师、IP 或制品名"></label><div id="boothSearchResults" class="booth-search-results"></div></form></dialog>
 
-  <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2>现场记一笔</h2><p>不必逐件拆价，记下这个摊位一共买了什么、花了多少就好。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13"></label><label><span>一共花了</span><input id="quickPurchaseAmount" required type="number" min="0" step="1" inputmode="decimal" placeholder="¥"></label><label class="wide"><span>买了什么</span><input id="quickPurchaseName" required placeholder="例如：立牌＋吧唧×2"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">记下这笔购买</button></form></dialog>
+  <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog expense-form"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2 id="quickPurchaseTitle">现场记一笔</h2><p>整笔只记录一次实际付款；可以顺手勾选这次买到的心愿制品。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13" autocomplete="off"></label><label><span>本次实际付款</span><input id="quickPurchaseAmount" required type="number" min="0" step="0.01" inputmode="decimal" placeholder="¥"></label><div class="wide linked-purchase-box" id="linkedPurchaseBox" hidden><strong>本次买到的心愿制品</strong><small>只勾选实际买到的，未勾选制品保持原状。</small><div id="linkedPurchaseItems"></div></div><label class="wide"><span>购买内容与备注（选填）</span><textarea id="quickPurchaseName" placeholder="自己：猫猫本 ×1&#10;小A：吧唧，单价 ¥25"></textarea></label><label class="wide proxy-toggle"><input id="quickPurchaseProxy" type="checkbox"><span>本次消费包含帮朋友代购</span></label><label class="wide proxy-amount" id="proxyAmountRow" hidden><span>其中代购总金额（选填，可稍后补）</span><input id="quickPurchaseProxyAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="来不及算就留空"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">保存这笔消费</button></form></dialog>
+
+  <dialog id="expensesDialog"><form method="dialog" class="dialog-card expenses-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">EXPENSES</p><h2 id="expensesDialogTitle">消费记录</h2><div id="expensesDialogContent"></div></form></dialog>
+  <dialog id="cardMenuDialog"><form method="dialog" class="dialog-card card-menu-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><h2 id="cardMenuTitle">管理制品</h2><button id="cardMenuStar" type="button"></button><button id="cardMenuDelete" class="danger" type="button">删除制品</button></form></dialog>
+  <dialog id="statusDialog"><form method="dialog" class="dialog-card intent-dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">PURCHASE STATUS</p><h2>选择购买状态</h2><p id="statusDialogName"></p><div id="statusDialogChoices" class="intent-dialog-choices"></div></form></dialog>
 
   <dialog id="intentDialog"><form method="dialog" class="dialog-card intent-dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">PURCHASE INTENT</p><h2>选择购买意向</h2><p id="intentDialogName"></p><div id="intentDialogChoices" class="intent-dialog-choices"></div></form></dialog>
 
   <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=22"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>
 
