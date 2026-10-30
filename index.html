@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -39,11 +39,12 @@
 
       <section class="stats budget-stats" aria-label="预算统计">
         <article><span>预算上限</span><strong id="statBudgetLimit">未设置</strong></article>
-        <article><span>个人已花 <button class="info-dot" id="spentInfo" type="button" aria-label="查看个人已花说明">?</button></span><strong id="statSpent">¥0</strong></article>
+        <article class="spent-card"><span>个人已花 <button class="info-dot" id="spentInfo" type="button" aria-label="查看个人已花说明" aria-expanded="false">?</button></span><strong id="statSpent">¥0</strong><div class="info-popover" id="spentPopover" hidden>只统计“记一笔”中已确认属于自己的消费；心愿单价格不会重复算入。</div></article>
         <article id="remainingCard"><span id="remainingLabel">还可花</span><strong id="statRemaining">未设置预算</strong></article>
       </section>
-      <div class="budget-progress" id="budgetProgress" hidden><i id="confirmedProgress"></i><i id="pendingProgress"></i></div>
-      <div class="budget-alert" id="budgetPendingAlert" hidden></div>
+      <div class="budget-progress" id="budgetProgress" hidden><i id="confirmedProgress" class="confirmed"></i><i id="pendingProgress" class="pending"></i></div>
+      <div class="budget-pending-alert" id="budgetPendingAlert" hidden></div>
+      <div class="plan-summary" id="planSummary"></div>
       <div class="budget-detail"><span>实际经手 <b id="statHandled">¥0</b></span><button id="openExpenses" type="button">消费记录 <b id="statExpenseCount">0</b> 笔</button><button id="openSpendingRank" type="button">摊位消费排行</button><span>心愿制品 <b id="statItems">0</b> 件 · <b id="statBooths">0</b> 个摊位</span></div>
 
       <nav class="view-tabs" aria-label="主要视图">
@@ -167,7 +168,7 @@
 
   <dialog id="boothSearchDialog"><form method="dialog" class="dialog-card field-dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">QUICK FIND</p><h2>快速查摊位</h2><label class="search-box field-search"><span>⌕</span><input id="boothSearchInput" type="search" autocomplete="off" placeholder="输入 C13、老师、IP 或制品名"></label><div id="boothSearchResults" class="booth-search-results"></div></form></dialog>
 
-  <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog expense-form"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2 id="quickPurchaseTitle">现场记一笔</h2><p>整笔只记录一次实际付款；可以顺手勾选这次买到的心愿制品。</p><div class="quick-purchase-grid"><label><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="例如：肆C13" autocomplete="off"></label><label><span>本次实际付款</span><input id="quickPurchaseAmount" required type="number" min="0" step="0.01" inputmode="decimal" placeholder="¥"></label><div class="wide linked-purchase-box" id="linkedPurchaseBox" hidden><strong>本次买到的心愿制品</strong><small>只勾选实际买到的，未勾选制品保持原状。</small><div id="linkedPurchaseItems"></div></div><label class="wide"><span>购买内容与备注（选填）</span><textarea id="quickPurchaseName" placeholder="自己：猫猫本 ×1&#10;小A：吧唧，单价 ¥25"></textarea></label><label class="wide proxy-toggle"><input id="quickPurchaseProxy" type="checkbox"><span>本次消费包含帮朋友代购</span></label><label class="wide proxy-amount" id="proxyAmountRow" hidden><span>其中代购总金额（选填，可稍后补）</span><input id="quickPurchaseProxyAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="来不及算就留空"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">保存这笔消费</button></form></dialog>
+  <dialog id="quickPurchaseDialog"><form id="quickPurchaseForm" class="dialog-card field-dialog expense-form"><button class="dialog-close" id="quickPurchaseClose" type="button" aria-label="关闭">×</button><p class="eyebrow">QUICK PURCHASE</p><h2 id="quickPurchaseTitle">现场记一笔</h2><p>整笔只记录一次实际付款；可以顺手勾选这次买到的心愿制品。</p><div class="quick-purchase-grid"><label class="booth-input-wrap"><span>摊位号</span><input id="quickPurchaseBooth" required placeholder="输入馆别或编号即可联想" autocomplete="off"><div class="booth-suggestions" id="quickBoothSuggestions" hidden></div></label><label><span>本次实际付款</span><input id="quickPurchaseAmount" required type="number" min="0" step="0.01" inputmode="decimal" placeholder="¥"></label><div class="wide linked-purchase-box" id="linkedPurchaseBox" hidden><strong>本次买到的心愿制品</strong><small>只勾选实际买到的；名称与当前购买状态会分开显示。</small><div id="linkedPurchaseItems"></div></div><label class="wide"><span>购买内容与备注（选填）</span><textarea id="quickPurchaseName" placeholder="自己：猫猫本 ×1&#10;小A：吧唧，单价 ¥25"></textarea></label><label class="wide proxy-toggle"><input id="quickPurchaseProxy" type="checkbox"><span>本次消费包含帮朋友代购</span></label><label class="wide proxy-amount" id="proxyAmountRow" hidden><span>其中代购总金额（选填，可稍后补）</span><input id="quickPurchaseProxyAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="来不及算就留空"></label><div class="wide quick-photo"><span>照片（可选）</span><div class="quick-photo-actions"><label>直接拍照<input id="quickPurchaseCamera" type="file" accept="image/*" capture="environment" hidden></label><label>选择照片 / 文件<input id="quickPurchasePhoto" type="file" accept="image/*" hidden></label></div><small id="quickPurchasePhotoHint">尚未选择照片</small></div></div><button class="quick-save" type="submit">保存这笔消费</button></form></dialog>
 
   <dialog id="expensesDialog"><form method="dialog" class="dialog-card expenses-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">EXPENSES</p><h2 id="expensesDialogTitle">消费记录</h2><div id="expensesDialogContent"></div></form></dialog>
   <dialog id="cardMenuDialog"><form method="dialog" class="dialog-card card-menu-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><h2 id="cardMenuTitle">管理制品</h2><button id="cardMenuStar" type="button"></button><button id="cardMenuDelete" class="danger" type="button">删除制品</button></form></dialog>
@@ -176,9 +177,9 @@
   <dialog id="intentDialog"><form method="dialog" class="dialog-card intent-dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">PURCHASE INTENT</p><h2>选择购买意向</h2><p id="intentDialogName"></p><div id="intentDialogChoices" class="intent-dialog-choices"></div></form></dialog>
 
   <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
+  <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=23"></script>
+  <script src="app.js?v=24"></script>
 </body>
 </html>
-
