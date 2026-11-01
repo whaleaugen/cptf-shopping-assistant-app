@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -60,7 +60,7 @@
       </section>
 
       <section class="view active" id="listView">
-        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="wishlist-heading-actions"><button class="text-button" id="openOrganizer" type="button">整理心愿单</button><button class="text-button" id="toggleManage" type="button">管理</button></div></div>
+        <div class="section-heading"><div><p class="eyebrow">WISHLIST</p><h2>心愿单</h2></div><div class="wishlist-heading-actions"><button class="text-button" id="addManualItem" type="button">＋ 添加制品</button><button class="text-button" id="openOrganizer" type="button">整理心愿单</button><button class="text-button" id="toggleManage" type="button">管理</button></div></div>
         <button id="organizePrompt" class="organize-prompt" type="button" hidden><strong><span id="unreviewedCount">0</span> 件待整理</strong><span>开始决定购买意向 →</span></button>
         <div class="wishlist-query"><label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索展品、摊位、社团、原作"></label></div>
         <div class="sort-filter-bar"><div class="sort-tabs" id="sortTabs"><button type="button" data-sort="smart">综合</button><button type="button" data-sort="recent">最近加入</button><button type="button" data-sort="route">按摊位</button><button type="button" data-sort="custom">我的顺序</button><select id="sortMore" aria-label="更多排序"><option value="">更多排序</option><option value="heat">按热度</option><option value="name">按名称</option></select></div><button class="filter-toggle" id="filterToggle" type="button">☷ 筛选 <span id="activeFilterCount"></span></button></div>
@@ -130,6 +130,10 @@
     </form>
   </dialog>
 
+  <dialog id="manualBoothDialog"><form id="manualBoothForm" class="dialog-card compact-entry-card"><button class="dialog-close" value="cancel" formmethod="dialog" aria-label="关闭">×</button><p class="eyebrow">FOLLOW BOOTH</p><h2>关注一个摊位</h2><p>只是收进摊位清单，不会自动设为重点。</p><label><span>摊位号</span><input id="manualBoothNumber" required placeholder="例如：肆C03"></label><label><span>社团 / 摊位名称（可选）</span><input id="manualBoothName" placeholder="可以写社团名，或 A老师 / B老师"></label><label class="entry-check"><input id="manualBoothStarred" type="checkbox"><span>同时设为重点摊位</span></label><button class="memo-submit" type="submit">保存并打开摊位</button></form></dialog>
+
+  <dialog id="manualItemDialog"><form id="manualItemForm" class="dialog-card compact-entry-card"><button class="dialog-close" value="cancel" formmethod="dialog" aria-label="关闭">×</button><p class="eyebrow">ADD ITEM</p><h2>手动添加制品</h2><p>适合记录没有加入 CPP、但在摊宣或主页里看到的制品。</p><div class="manual-item-grid"><label class="wide"><span>制品名称</span><input id="manualItemName" required placeholder="例如：角色亚克力立牌"></label><label><span>摊位号</span><input id="manualItemBooth" required placeholder="例如：肆C03"></label><label><span>老师 / 社团（可选）</span><input id="manualItemCircle" placeholder="可填写多人"></label><label><span>原作 / IP（可选）</span><input id="manualItemSource"></label><label><span>制品类型（可选）</span><input id="manualItemType" placeholder="吧唧、立牌、图集……"></label><label><span>价格（可留空）</span><input id="manualItemPrice" type="number" min="0" step="0.01" inputmode="decimal"></label><label><span>购买意向</span><select id="manualItemIntent"><option value="undecided">待决定</option><option value="must">必买</option><option value="want">想买</option><option value="maybe">纠结</option><option value="freebie">无料</option><option value="browse">只逛逛</option></select></label><label class="wide"><span>制品图片（可选）</span><input id="manualItemImage" type="file" accept="image/*"><small>图片会保存在本机，并随 JSON 或迁移码备份。</small></label></div><button class="memo-submit" type="submit">加入心愿单</button></form></dialog>
+
   <dialog id="reportDialog">
     <form method="dialog" class="dialog-card">
       <button class="dialog-close" value="cancel" aria-label="关闭">×</button>
@@ -180,6 +184,6 @@
   <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=26"></script>
+  <script src="app.js?v=28"></script>
 </body>
 </html>
