@@ -4,7 +4,7 @@
 
 - 在线使用：<https://whaleaugen.github.io/cptf-shopping-assistant-app/>
 - 演示模式：<https://whaleaugen.github.io/cptf-shopping-assistant-app/?demo=1>
-- 当前应用版本：**v0.28.1**
+- 当前应用版本：**v0.28.2**
 - 公共制品资料：**20,758 件，更新至 2026-10-30**
 
 > 这不是 CPP 官方项目。制品、摊位与热度等公开资料可能变化，请以活动方和摊主最新公告为准。
