@@ -4,8 +4,8 @@
 
 - 在线使用：<https://whaleaugen.github.io/cptf-shopping-assistant-app/>
 - 演示模式：<https://whaleaugen.github.io/cptf-shopping-assistant-app/?demo=1>
-- 当前应用版本：**v0.28.2**
-- 公共制品资料：**20,758 件，更新至 2026-10-30**
+- 当前应用版本：**v0.28.3**
+- 公共制品资料：**21,506 件，更新至 2026-11-01**
 
 > 这不是 CPP 官方项目。制品、摊位与热度等公开资料可能变化，请以活动方和摊主最新公告为准。
 
@@ -62,7 +62,7 @@
 
 ## 公共资料库与 CPP 同步
 
-仓库内置 `data/cptf-catalog.json`，当前包含 20,758 件 CPTF 公开制品资料。匹配优先使用 `cppId`，其次使用摊位号与制品名称组合；自动补全不会覆盖个人价格、意向、购买状态或自定义图片。
+仓库内置 `data/cptf-catalog.json`，当前合并保留 21,506 件 CPTF 公开制品资料（其中 20,970 件来自本次抓取，另保留 536 件本次接口未返回的旧记录）。匹配优先使用 `cppId`，其次使用摊位号与制品名称组合；自动补全不会覆盖个人价格、意向、购买状态或自定义图片。
 
 CPP 的展品接口依赖登录态，公开网页不会收集 CPP 用户名、密码或 Cookie。需要自行更新资料时，可使用设置中的同步助手/书签在已登录的 CPP 页面生成 JSON，再导入购物助手。
 
@@ -96,4 +96,3 @@ python -m http.server 4174
 ## 致谢与许可
 
 项目基于 [Riiiiiii/cpg08-shopping-assistant](https://github.com/Riiiiiii/cpg08-shopping-assistant) 的离线购物助手思路重制，并保留原仓库许可证。公共资料来自公开可见的活动信息；制品图片及相关内容版权归各自作者或权利人所有。
-

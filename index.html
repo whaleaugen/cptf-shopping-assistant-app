@@ -8,7 +8,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=30">
+  <link rel="stylesheet" href="styles.css?v=31">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -54,7 +54,7 @@
       </nav>
 
       <section class="view" id="routeView">
-        <div class="section-heading"><div><p class="eyebrow">BOOTHS</p><h2>按馆查看摊位</h2></div><div class="heading-actions"><button class="text-button" id="addManualBooth" type="button">＋ 关注摊位</button><span id="routeSummary"></span></div></div>
+        <div class="section-heading"><div><p class="eyebrow">BOOTHS</p><h2>按馆查看摊位</h2></div><div class="heading-actions"><button class="primary-entry-action" id="addManualBooth" type="button"><b>＋</b><span>关注摊位</span></button><span id="routeSummary"></span></div></div>
         <div class="hall-grid" id="hallGrid"></div>
         <div class="route-board" id="routeBoard"></div>
       </section>
@@ -82,7 +82,7 @@
       </section>
 
       <section class="view" id="memoView">
-        <div class="section-heading"><div><p class="eyebrow">FIELD NOTES</p><h2>逛展备忘</h2></div><div class="heading-actions"><button class="text-button" id="openMemoForm" type="button">＋ 新增备忘</button><span id="memoSummary"></span></div></div>
+        <div class="section-heading"><div><p class="eyebrow">FIELD NOTES</p><h2>逛展备忘</h2></div><div class="heading-actions"><button class="memo-unassigned-quick" id="memoUnassignedQuick" type="button" hidden></button><button class="primary-entry-action" id="openMemoForm" type="button"><b>＋</b><span>新增备忘</span></button><span id="memoSummary"></span></div></div>
         <div class="memo-layout">
           <form class="memo-form is-collapsed" id="memoForm">
             <div class="memo-form-head"><h3 id="memoFormTitle">记一件想做的事</h3><p>无料、集章、摊宣和临场提醒都可以放进路线。</p><button id="manageMemoTypes" class="memo-type-manage" type="button">管理备忘类型</button></div>
@@ -99,7 +99,7 @@
             <button class="memo-submit" id="memoSubmit" type="submit">加入逛展备忘</button><button class="memo-cancel-edit" id="memoCancelEdit" type="button" hidden>取消编辑</button>
           </form>
           <div>
-            <div class="memo-filter-row"><div class="memo-filters" id="memoFilters"><button class="active" type="button" data-memo-filter="all">全部</button></div><select id="memoStatusFilter"><option value="all">全部状态</option><option value="pending">待完成</option><option value="done">已完成</option></select><select id="memoHallFilter"><option value="all">全部馆别</option><option value="创">创作摊</option><option value="壹">壹馆</option><option value="贰">贰馆</option><option value="叁">叁馆</option><option value="肆">肆馆</option></select></div>
+            <div class="memo-filter-row"><div class="memo-filters" id="memoFilters"><button class="active" type="button" data-memo-filter="all">全部</button></div><select id="memoLocationFilter" aria-label="地点关联"><option value="all">全部地点</option><option value="booth">已关联摊位</option><option value="none">无摊位（游客发布等）</option></select><select id="memoStatusFilter"><option value="all">全部状态</option><option value="pending">待完成</option><option value="done">已完成</option></select><select id="memoHallFilter"><option value="all">全部馆别</option><option value="创">创作摊</option><option value="壹">壹馆</option><option value="贰">贰馆</option><option value="叁">叁馆</option><option value="肆">肆馆</option></select></div>
             <div class="memo-list" id="memoList"></div>
           </div>
         </div>
@@ -185,7 +185,6 @@
   <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=31"></script>
+  <script src="app.js?v=32"></script>
 </body>
 </html>
-

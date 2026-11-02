@@ -4,10 +4,10 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const APP_RELEASE = '0.28.2';
+const APP_RELEASE = '0.28.3';
 const CHANGELOG_SEEN_KEY = IS_DEMO ? 'cptf-changelog-seen-demo-v1' : 'cptf-changelog-seen-v1';
-const CATALOG_VERSION = '2026-10-30-v1';
-const CATALOG_UPDATED_AT = '2026 年 10 月 30 日';
+const CATALOG_VERSION = '2026-11-01-v1';
+const CATALOG_UPDATED_AT = '2026 年 11 月 1 日';
 const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const TRANSFER_API = 'https://cptf-transfer.whale-keyjoon.workers.dev';
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
@@ -18,10 +18,11 @@ const INTENT_RANK = { must: 0, want: 1, maybe: 2, freebie: 3, browse: 4 };
 const BOOTH_STATES = { pending: '未到达', visited: '已逛', return: '需要返场', queue: '排队中', away: '摊主暂离', skipped: '已跳过' };
 const SEED_ITEMS = [];
 const CHANGELOG = [
-  { version: '0.28.2', title: '摊位与手动补录优化', changes: [
+  { version: '0.28.3', title: '摊位、备忘与手动补录优化', changes: [
     '摊位详情优先展示主页、制品和备忘，编辑资料与主页表单改为按需展开。',
     '支持取消关注、完整修改手动制品，并可从关联内容快速返回原摊位；摊宣图片支持整图、裁剪和放大查看。',
-    '手动制品自动关联已有摊位名称，老师/作者独立记录；原作/IP 和制品类型支持已有分类联想。'
+    '手动制品支持摊位、老师、原作/IP 和制品类型联想；无摊位备忘可以单独筛选。',
+    '关注摊位与新增备忘入口改为更醒目的主操作按钮，公共制品资料更新至 11 月 1 日。'
   ]},
   { version: '0.27.0', title: '手动补录与摊位详情联动', changes: [
     '关注摊位不再自动加星，可同时填写或修改独立的摊位名称。',
@@ -438,9 +439,10 @@ function openBooth(booth) {
 }
 
 function renderMemos() {
-  const statusFilter=document.getElementById('memoStatusFilter')?.value||'all', hallFilter=document.getElementById('memoHallFilter')?.value||'all';
-  const memos = state.memos.filter(memo => (memoFilter === 'all' || memo.type === memoFilter) && (statusFilter==='all'||(statusFilter==='done')===Boolean(memo.done)) && (hallFilter==='all'||hallOf(memo.booth)===hallFilter)).sort((a, b) => Number(a.done) - Number(b.done) || routeIndex({ boothRaw: a.booth }) - routeIndex({ boothRaw: b.booth }));
+  const statusFilter=document.getElementById('memoStatusFilter')?.value||'all', hallFilter=document.getElementById('memoHallFilter')?.value||'all',locationFilter=document.getElementById('memoLocationFilter')?.value||'all';
+  const memos = state.memos.filter(memo => (memoFilter === 'all' || memo.type === memoFilter) && (statusFilter==='all'||(statusFilter==='done')===Boolean(memo.done)) && (hallFilter==='all'||hallOf(memo.booth)===hallFilter) && (locationFilter==='all'||(locationFilter==='booth'?Boolean(memo.booth):!memo.booth))).sort((a, b) => Number(a.done) - Number(b.done) || routeIndex({ boothRaw: a.booth }) - routeIndex({ boothRaw: b.booth }));
   document.getElementById('memoSummary').textContent = `${state.memos.filter(memo => !memo.done).length} 项待办`;
+  const unassigned=state.memos.filter(memo=>!memo.booth&&!memo.done).length,quick=document.getElementById('memoUnassignedQuick');quick.hidden=!unassigned;quick.textContent=`无摊位 ${unassigned} 条`;
   const list = document.getElementById('memoList');
   list.innerHTML = memos.length ? memos.map(memo => { const link = safeUrl(memo.link); return `<article class="memo-card ${memo.done ? 'done' : ''}">${memo.image ? `<img class="memo-image" src="${esc(memo.image)}" alt="${esc(memo.title)}">` : ''}<div class="memo-card-head"><div class="memo-card-title"><h3><span class="memo-type ${memo.type}">${esc(memoTypeLabel(memo.type))}</span>${esc(memo.title)}</h3><p>${[memo.booth, memo.circle].filter(Boolean).map(esc).join(' · ') || '未关联摊位'}</p></div></div>${memo.note ? `<p class="memo-card-note">${esc(memo.note)}</p>` : ''}<div class="memo-actions"><button class="memo-done" type="button" data-memo-toggle="${memo.id}">${memo.done ? '恢复待办' : '完成'}</button>${memo.booth ? `<button type="button" data-memo-booth="${esc(memo.booth)}">打开摊位</button>` : ''}${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${memo.linkType === 'xiaohongshu' ? '小红书' : memo.linkType === 'weibo' ? '微博' : '打开链接'} ↗</a>` : ''}<button type="button" data-memo-edit="${memo.id}">编辑</button><button class="memo-delete" type="button" data-memo-delete="${memo.id}">删除</button></div></article>`; }).join('') : '<div class="empty-state">还没有这类备忘。可以先记一条想领取的无料或盖章点。</div>';
   list.querySelectorAll('[data-memo-toggle]').forEach(button => button.addEventListener('click', () => toggleMemo(button.dataset.memoToggle)));
@@ -533,7 +535,7 @@ async function enrichFromPublicCatalog(showReport = true) {
 }
 function showSyncReport(report) {
   const content = document.getElementById('reportDialogContent');
-  content.innerHTML = `<p class="eyebrow">SYNC REPORT</p><h2>${report.publicCatalog ? '公共资料库自动补全' : '图片同步结果'}</h2><div class="report-stats"><div><strong>${report.matched}</strong><small>成功匹配</small></div><div><strong>${report.imagesUpdated}</strong><small>图片更新</small></div><div><strong>${report.unmatched.length}</strong><small>清单未匹配</small></div></div><p class="report-note">${report.publicCatalog ? '已自动查询 20115 件 CPTF 公开制品。' : `同步源共有 ${report.sourceCount} 条展品。`}价格、数量、意向和购买状态全部保留。${report.missingImages ? `其中 ${report.missingImages} 件在 CPP 公开资料中本身没有封面，可以在制品详情中自行添加。` : ''}</p>${report.unmatched.length ? `<h3>未匹配的清单条目</h3><ul class="report-list">${report.unmatched.map(item => `<li>${esc(item.boothRaw)} · ${esc(item.name)}</li>`).join('')}</ul>` : '<p>当前清单已全部匹配。</p>'}`;
+  content.innerHTML = `<p class="eyebrow">SYNC REPORT</p><h2>${report.publicCatalog ? '公共资料库自动补全' : '图片同步结果'}</h2><div class="report-stats"><div><strong>${report.matched}</strong><small>成功匹配</small></div><div><strong>${report.imagesUpdated}</strong><small>图片更新</small></div><div><strong>${report.unmatched.length}</strong><small>清单未匹配</small></div></div><p class="report-note">${report.publicCatalog ? `已自动查询 ${report.sourceCount} 件 CPTF 公开制品。` : `同步源共有 ${report.sourceCount} 条展品。`}价格、数量、意向和购买状态全部保留。${report.missingImages ? `其中 ${report.missingImages} 件在 CPP 公开资料中本身没有封面，可以在制品详情中自行添加。` : ''}</p>${report.unmatched.length ? `<h3>未匹配的清单条目</h3><ul class="report-list">${report.unmatched.map(item => `<li>${esc(item.boothRaw)} · ${esc(item.name)}</li>`).join('')}</ul>` : '<p>当前清单已全部匹配。</p>'}`;
   document.getElementById('reportDialog').showModal();
 }
 function downloadJson() { const blob = new Blob([JSON.stringify({ ...state, event: EVENT, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'CPTF-shopping-backup.json'; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); }
@@ -618,7 +620,8 @@ document.getElementById('memoForm').addEventListener('submit', event => {
   saveState(); const edited = Boolean(editingMemoId),sourceBooth=returnBooth; resetMemoForm(); document.getElementById('memoForm').classList.add('is-collapsed'); renderMemos(); renderRoute(); toast(edited ? '备忘已更新' : '已加入逛展备忘');if(sourceBooth)showGlobalAction('备忘已保存','返回摊位',()=>openBooth(sourceBooth));returnBooth='';
 });
 document.getElementById('memoCancelEdit').addEventListener('click',()=>{const sourceBooth=returnBooth;resetMemoForm();if(sourceBooth){returnBooth='';openBooth(sourceBooth);}});
-['memoStatusFilter','memoHallFilter'].forEach(id=>document.getElementById(id).addEventListener('change',renderMemos));
+['memoStatusFilter','memoHallFilter','memoLocationFilter'].forEach(id=>document.getElementById(id).addEventListener('change',renderMemos));
+document.getElementById('memoUnassignedQuick').addEventListener('click',()=>{document.getElementById('memoLocationFilter').value='none';renderMemos();document.getElementById('memoLocationFilter').scrollIntoView({behavior:'smooth',block:'center'});});
 document.getElementById('manageMemoTypes').addEventListener('click', () => { renderMemoTypesDialog(); document.getElementById('memoTypesDialog').showModal(); });
 document.getElementById('addMemoType').addEventListener('click', () => { const input=document.getElementById('newMemoTypeName'), name=input.value.trim(); if(!name)return; state.memoTypes.push({id:`custom-${uid()}`,name}); input.value=''; saveState(); refreshMemoTypes(); renderMemoTypesDialog(); });
 document.getElementById('memoImageInput').addEventListener('change', async event => { const file=event.target.files[0]; if(!file)return; const data=await memoImageFileToDataUrl(file), image=new Image();pendingFullMemoImage=data;image.onload=()=>{cropSourceImage=image;cropRect=null;cropRatio='free';document.querySelectorAll('[data-crop-ratio]').forEach(button=>button.classList.toggle('active',button.dataset.cropRatio==='free'));drawCropPreview();document.getElementById('cropDialog').showModal();}; image.src=data; event.target.value=''; });
@@ -639,4 +642,3 @@ if(!IS_DEMO){try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT
 if(!IS_DEMO){const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);}
 if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}}
 if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
-
