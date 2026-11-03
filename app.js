@@ -4,7 +4,7 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const APP_RELEASE = '0.29.0';
+const APP_RELEASE = '0.29.1';
 const CHANGELOG_SEEN_KEY = IS_DEMO ? 'cptf-changelog-seen-demo-v1' : 'cptf-changelog-seen-v1';
 const CATALOG_VERSION = '2026-11-01-v1';
 const CATALOG_UPDATED_AT = '2026 年 11 月 1 日';
@@ -20,6 +20,9 @@ const INTENT_RANK = { must: 0, want: 1, maybe: 2, freebie: 3, browse: 4 };
 const BOOTH_STATES = { pending: '未到达', visited: '已逛', return: '需要返场', queue: '排队中', away: '摊主暂离', skipped: '已跳过' };
 const SEED_ITEMS = [];
 const CHANGELOG = [
+  { version: '0.29.1', title: '多图存储容量修复', changes: [
+    '图片较多时，完整存档会自动保存在大容量安全存储中；常规存储只保留轻量索引，不再反复提示空间不足。'
+  ]},
   { version: '0.29.0', title: '街道活动与多图资料', changes: [
     '摊位详情优先展示主页、制品和备忘，编辑资料与主页表单改为按需展开。',
     '支持取消关注、完整修改手动制品，并可从关联内容快速返回原摊位；摊宣图片支持整图、裁剪和放大查看。',
@@ -132,7 +135,10 @@ function loadState() {
 function openDurableDb(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('indexeddb-unavailable'));return;}const request=indexedDB.open(DURABLE_DB_NAME,1);request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(DURABLE_STORE_NAME))db.createObjectStore(DURABLE_STORE_NAME);};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('indexeddb-open-failed'));});}
 async function durableGet(){const db=await openDurableDb();return new Promise((resolve,reject)=>{const tx=db.transaction(DURABLE_STORE_NAME,'readonly'),request=tx.objectStore(DURABLE_STORE_NAME).get(ACTIVE_STORAGE_KEY);request.onsuccess=()=>resolve(request.result||null);request.onerror=()=>reject(request.error);tx.oncomplete=()=>db.close();tx.onabort=()=>{db.close();reject(tx.error);};});}
 async function durablePut(serialized,revision){const db=await openDurableDb();return new Promise((resolve,reject)=>{const tx=db.transaction(DURABLE_STORE_NAME,'readwrite');tx.objectStore(DURABLE_STORE_NAME).put({revision,data:serialized},ACTIVE_STORAGE_KEY);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};tx.onabort=()=>{db.close();reject(tx.error);};});}
-async function hydrateDurableState(){if(IS_DEMO)return;try{const record=await durableGet(),localRevision=Number(state.storageRevision)||0;if(record?.data&&Number(record.revision)>localRevision){const candidate=normalizeState(JSON.parse(record.data));state=candidate;try{localStorage.setItem(ACTIVE_STORAGE_KEY,record.data);}catch(_){}renderAfterRestore();toast('已从安全存储恢复最近修改');}else{if(!state.storageRevision)state.storageRevision=Date.now();const serialized=JSON.stringify(state);await durablePut(serialized,state.storageRevision);try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);}catch(_){}}}catch(error){console.warn('安全存储初始化失败',error);}}
+function isLocalImage(value){return typeof value==='string'&&value.startsWith('data:image/');}
+function lightweightSerialized(source){const copy=JSON.parse(JSON.stringify(source));copy.durableStateRequired=true;(copy.items||[]).forEach(item=>{if(isLocalImage(item.coverUrl))item.coverUrl='';item.images=(item.images||[]).filter(image=>!isLocalImage(image));});(copy.memos||[]).forEach(memo=>{memo.images=(memo.images||[]).filter(image=>!isLocalImage(image));if(isLocalImage(memo.image))memo.image='';});(copy.expenses||[]).forEach(expense=>{if(isLocalImage(expense.photo))expense.photo='';});return JSON.stringify(copy);}
+function writeLocalState(serialized,source=state){try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);return true;}catch(error){console.warn('常规存储改用轻量索引',error);try{localStorage.setItem(ACTIVE_STORAGE_KEY,lightweightSerialized(source));return false;}catch(fallbackError){console.error('轻量索引保存失败',fallbackError);return false;}}}
+async function hydrateDurableState(){if(IS_DEMO)return;try{const record=await durableGet(),localRevision=Number(state.storageRevision)||0,needsDurable=state.durableStateRequired===true;if(record?.data&&(needsDurable||Number(record.revision)>localRevision)){const candidate=normalizeState(JSON.parse(record.data));state=candidate;writeLocalState(record.data,candidate);renderAfterRestore();toast(needsDurable?'已从安全存储载入完整图片资料':'已从安全存储恢复最近修改');}else{if(!state.storageRevision)state.storageRevision=Date.now();const serialized=JSON.stringify(state);await durablePut(serialized,state.storageRevision);writeLocalState(serialized,state);}}catch(error){console.warn('安全存储初始化失败',error);}}
 function normalizeState(data) {
   const rawItems = Array.isArray(data.items) ? data.items : [];
   const items = rawItems.filter(item => !item.manualPurchase).map((item, index) => ({ ...item, images: Array.isArray(item.images) ? item.images.filter(Boolean).slice(0,6) : [], qty: Number(item.qty) > 0 ? Number(item.qty) : 1, intent: item.intent || 'want', intentReviewed: item.intentReviewed === true, order: Number.isFinite(item.order) ? item.order : index, addedAt: Number.isFinite(item.addedAt) ? item.addedAt : (Number.isFinite(item.createdAt) ? item.createdAt : null) }));
@@ -151,7 +157,7 @@ function normalizeState(data) {
   return normalized;
 }
 function normalizeExpense(expense) { return { id: expense.id || uid(), boothRaw: String(expense.boothRaw || expense.booth || '').trim(), amountCents: Math.max(0, Math.round(Number(expense.amountCents ?? (Number(expense.amount) * 100)) || 0)), note: String(expense.note || ''), photo: expense.photo || expense.image || '', linkedItems: Array.isArray(expense.linkedItems) ? expense.linkedItems.map(row => ({ itemId: row.itemId || '', name: row.name || '', qty: Math.max(1, Number(row.qty) || 1) })) : [], hasProxyPurchase: expense.hasProxyPurchase === true, proxyAmountCents: expense.proxyAmountCents === null || expense.proxyAmountCents === undefined || expense.proxyAmountCents === '' ? null : Math.max(0, Math.round(Number(expense.proxyAmountCents) || 0)), createdAt: Number(expense.createdAt) || Date.now(), updatedAt: Number(expense.updatedAt) || null, legacySourceItemId: expense.legacySourceItemId || '' }; }
-function saveState(){state.storageRevision=Date.now();const serialized=JSON.stringify(state);let localSaved=true;try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);}catch(error){localSaved=false;console.warn('localStorage 保存失败',error);}renderStats();durablePut(serialized,state.storageRevision).then(()=>{if(!localSaved)showGlobalAction('本机常规存储空间不足；本次修改已保存到安全存储。建议尽快导出 JSON 备份。','导出备份',downloadJson,0);}).catch(error=>{console.error('安全存储保存失败',error);if(!localSaved)showGlobalAction('这次修改未能保存。请暂时不要关闭页面，并立即导出 JSON 备份。','导出备份',downloadJson,0);});}
+function saveState(){state.storageRevision=Date.now();delete state.durableStateRequired;const serialized=JSON.stringify(state),localSaved=writeLocalState(serialized,state);renderStats();durablePut(serialized,state.storageRevision).then(()=>{if(!localSaved)toast('图片较多，已自动改用大容量安全存储');}).catch(error=>{console.error('安全存储保存失败',error);if(!localSaved)showGlobalAction('这次修改未能保存。请暂时不要关闭页面，并立即导出 JSON 备份。','导出备份',downloadJson,0);});}
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
 function safeUrl(value) { try { const url = new URL(String(value || '')); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } }
 function uid() { return `i-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
