@@ -11,7 +11,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=32">
+  <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -59,6 +59,7 @@
       <section class="view" id="routeView">
         <div class="section-heading"><div><p class="eyebrow">BOOTHS</p><h2>按馆查看摊位</h2></div><div class="heading-actions"><button class="primary-entry-action" id="addManualBooth" type="button"><b>＋</b><span>关注摊位</span></button><span id="routeSummary"></span></div></div>
         <div class="hall-grid" id="hallGrid"></div>
+        <div class="route-tools"><button id="activityBoothFilter" type="button" aria-pressed="false">只看街道活动摊位</button></div>
         <div class="route-board" id="routeBoard"></div>
       </section>
 
@@ -97,7 +98,7 @@
               <label><span>摊宣平台</span><select id="memoLinkType"><option value="xiaohongshu">小红书</option><option value="weibo">微博</option><option value="other">其他链接</option></select></label>
               <label class="wide"><span>摊宣链接</span><input id="memoLink" type="url" placeholder="https://…（可选）"></label>
               <label class="wide"><span>备注</span><textarea id="memoNote" placeholder="领取条件、口令、时间、限量信息……"></textarea></label>
-              <label class="wide"><span>摊宣图片（可保留整图或裁剪）</span><input id="memoImageInput" type="file" accept="image/*"><small id="memoImageHint">未选择图片</small></label>
+              <label class="wide"><span>摊宣图片（最多 9 张）</span><input id="memoImageInput" type="file" accept="image/*" multiple><small id="memoImageHint">可以一次选择多张；会压缩后保存在本机</small></label><div class="wide multi-image-editor" id="memoImagePreview"></div>
             </div>
             <button class="memo-submit" id="memoSubmit" type="submit">加入逛展备忘</button><button class="memo-cancel-edit" id="memoCancelEdit" type="button" hidden>取消编辑</button>
           </form>
@@ -173,7 +174,7 @@
   <dialog id="memoTypesDialog"><form method="dialog" class="dialog-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">MEMO TYPES</p><h2>管理备忘类型</h2><div id="memoTypesList" class="memo-types-list"></div><div class="memo-type-add"><input id="newMemoTypeName" maxlength="12" placeholder="新类型名称"><button id="addMemoType" type="button">新增</button></div></form></dialog>
 
   <dialog id="cropDialog"><form method="dialog" class="dialog-card crop-card"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">IMAGE</p><h2>使用整图或自由截取</h2><p>长图可以直接保留；需要突出局部时再拖动裁剪框。</p><canvas id="cropCanvas" width="720" height="480"></canvas><div class="crop-presets"><button type="button" data-crop-ratio="free" class="active">自由</button><button type="button" data-crop-ratio="1">方形</button><button type="button" data-crop-ratio="1.5">横图</button><button type="button" data-crop-ratio="0.75">竖图</button></div><div class="crop-actions"><button id="keepWholeImage" type="button">保留整张图片</button><button id="applyCrop" class="memo-submit" type="button">使用这个截取</button></div></form></dialog>
-  <dialog id="imageViewerDialog" class="image-viewer-dialog"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><div class="image-stage" id="imageViewerStage"><img id="imageViewerImage" alt="查看大图"></div><div class="image-zoom-controls"><button id="imageZoomOut" type="button">－</button><input id="imageZoomRange" type="range" min="50" max="400" value="100"><button id="imageZoomIn" type="button">＋</button><button id="imageZoomReset" type="button">适应屏幕</button></div></form></dialog>
+  <dialog id="imageViewerDialog" class="image-viewer-dialog"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><div class="image-stage" id="imageViewerStage"><img id="imageViewerImage" alt="查看大图"></div><div class="image-viewer-nav"><button id="imageViewerPrev" type="button">‹ 上一张</button><span id="imageViewerCount"></span><button id="imageViewerNext" type="button">下一张 ›</button></div><div class="image-zoom-controls"><button id="imageZoomOut" type="button">－</button><input id="imageZoomRange" type="range" min="50" max="400" value="100"><button id="imageZoomIn" type="button">＋</button><button id="imageZoomReset" type="button">适应屏幕</button></div></form></dialog>
 
   <dialog id="boothSearchDialog"><form method="dialog" class="dialog-card field-dialog"><button class="dialog-close" value="cancel" aria-label="关闭">×</button><p class="eyebrow">QUICK FIND</p><h2>快速查摊位</h2><label class="search-box field-search"><span>⌕</span><input id="boothSearchInput" type="search" autocomplete="off" placeholder="输入 C13、老师、IP 或制品名"></label><div id="boothSearchResults" class="booth-search-results"></div></form></dialog>
 
@@ -189,6 +190,6 @@
   <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=33"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>
