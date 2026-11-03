@@ -4,7 +4,7 @@
 
 - 在线使用：<https://whaleaugen.github.io/cptf-shopping-assistant-app/>
 - 演示模式：<https://whaleaugen.github.io/cptf-shopping-assistant-app/?demo=1>
-- 当前应用版本：**v0.29.0**
+- 当前应用版本：**v0.29.1**
 - 公共制品资料：**21,506 件，更新至 2026-11-01**
 
 > 这不是 CPP 官方项目。制品、摊位与热度等公开资料可能变化，请以活动方和摊主最新公告为准。
@@ -51,7 +51,7 @@
 
 ## 数据、备份与隐私
 
-- 正式数据保存在当前设备，并同时写入 `localStorage` 与容量更大的 IndexedDB 安全副本；仓库和公共网页不会保存个人心愿单。
+- 正式数据保存在当前设备：完整存档写入容量更大的 IndexedDB 安全存储，`localStorage` 空间不足时会自动退化为轻量索引；仓库和公共网页不会保存个人心愿单。
 - iPhone 主屏幕 Web App 可能与 Safari 标签页使用不同的本机存储空间，首次打开时可用迁移码或 JSON 恢复一次。
 - 演示模式使用独立存储空间，不会读取或覆盖正式数据。
 - JSON 备份是最稳定的迁移方式，也适合保存图片较多的存档。
