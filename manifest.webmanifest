@@ -1,7 +1,9 @@
 {
   "name": "CPTF 购物助手",
   "short_name": "CPTF",
+  "id": "./",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#fffaf4",
   "theme_color": "#fffaf4",

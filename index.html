@@ -4,11 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#fffaf4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="CPTF">
   <meta name="description" content="COMICUP CITYTOUR FU 离线购物清单与馆别导航">
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=31">
+  <link rel="stylesheet" href="styles.css?v=32">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -148,6 +151,7 @@
       <label class="setting-row"><span><strong>显示已购买展品</strong><small>关闭后，路线中只保留还没买到的展品</small></span><input id="showPurchased" type="checkbox" checked></label>
       <label class="setting-row budget-setting"><span><strong>总购物预算</strong><small>“只逛逛”的制品不计入计划预算</small></span><input id="budgetLimit" type="number" min="0" step="1" placeholder="不限"></label>
       <label class="setting-row visit-date-setting"><span><strong>我的逛展日</strong><small>只影响个人倒计时，以后可以随时修改</small></span><input id="visitDate" type="date" min="2026-11-06" max="2026-11-08"></label>
+      <section class="settings-data app-update-setting"><div><h3>主屏幕版与更新</h3><p id="appModeNote">检查网页程序的新版本，不会删除心愿单、图片或备忘。</p></div><button class="settings-action" id="refreshAppButton" type="button">检查更新并重新载入</button><small id="refreshAppStatus" aria-live="polite"></small></section>
       <section class="catalog-settings"><div><strong>图片自动补全</strong><small>导入 Excel 后会自动运行；缺图时也可以在这里重新匹配或手动导入维护文件。</small></div><button id="refreshCatalogButton" type="button">重新自动匹配</button><a href="sync-helper.html">维护公共资料库</a><label>手动导入 JSON<input id="enrichmentInput" type="file" accept="application/json,.json" hidden></label></section>
       <section class="settings-data"><h3>数据管理</h3><p>个人清单、图片、社媒和备忘优先保存在当前设备。</p><label class="settings-action primary">导入 CPP Excel<input id="excelInput" type="file" accept=".xlsx,.xls" hidden></label><button class="settings-action" id="exportButton" type="button">导出完整备份</button><label class="settings-action">恢复 JSON 备份<input id="backupInput" type="file" accept="application/json,.json" hidden></label></section>
       <section class="settings-data changelog-setting"><div><h3>更新日志</h3><p>看看最近新增了什么，以及使用方式有哪些变化。</p></div><button class="settings-action" id="openChangelog" type="button">查看更新日志 <span id="currentReleaseLabel"></span></button></section>
@@ -185,6 +189,6 @@
   <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=32"></script>
+  <script src="app.js?v=33"></script>
 </body>
 </html>

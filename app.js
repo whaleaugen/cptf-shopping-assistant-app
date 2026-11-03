@@ -4,12 +4,14 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const APP_RELEASE = '0.28.3';
+const APP_RELEASE = '0.28.4';
 const CHANGELOG_SEEN_KEY = IS_DEMO ? 'cptf-changelog-seen-demo-v1' : 'cptf-changelog-seen-v1';
 const CATALOG_VERSION = '2026-11-01-v1';
 const CATALOG_UPDATED_AT = '2026 年 11 月 1 日';
 const CATALOG_URL = `./data/cptf-catalog.json?v=${CATALOG_VERSION}`;
 const TRANSFER_API = 'https://cptf-transfer.whale-keyjoon.workers.dev';
+const DURABLE_DB_NAME = 'cptf-shopping-storage';
+const DURABLE_STORE_NAME = 'snapshots';
 const HALL_ORDER = ['创', '壹', '贰', '叁', '肆'];
 const MEMO_TYPES = { freebie: '无料', stamp: '盖章', promo: '摊宣', reminder: '提醒' };
 const DEFAULT_MEMO_TYPES = Object.entries(MEMO_TYPES).map(([id, name]) => ({ id, name }));
@@ -18,11 +20,12 @@ const INTENT_RANK = { must: 0, want: 1, maybe: 2, freebie: 3, browse: 4 };
 const BOOTH_STATES = { pending: '未到达', visited: '已逛', return: '需要返场', queue: '排队中', away: '摊主暂离', skipped: '已跳过' };
 const SEED_ITEMS = [];
 const CHANGELOG = [
-  { version: '0.28.3', title: '摊位、备忘与手动补录优化', changes: [
+  { version: '0.28.4', title: '摊位、备忘与手动补录优化', changes: [
     '摊位详情优先展示主页、制品和备忘，编辑资料与主页表单改为按需展开。',
     '支持取消关注、完整修改手动制品，并可从关联内容快速返回原摊位；摊宣图片支持整图、裁剪和放大查看。',
     '手动制品支持摊位、老师、原作/IP 和制品类型联想；无摊位备忘可以单独筛选。',
-    '关注摊位与新增备忘入口改为更醒目的主操作按钮，公共制品资料更新至 11 月 1 日。'
+    '关注摊位与新增备忘入口改为更醒目的主操作按钮，公共制品资料更新至 11 月 1 日。',
+    '主屏幕版新增“检查更新并重新载入”；个人存档会同步写入容量更大的安全存储，保存失败时会立即提醒。'
   ]},
   { version: '0.27.0', title: '手动补录与摊位详情联动', changes: [
     '关注摊位不再自动加星，可同时填写或修改独立的摊位名称。',
@@ -120,6 +123,10 @@ function loadState() {
   if (IS_DEMO) return createDemoState();
   return normalizeState({ version: 3, showPurchased: true, items: cloneSeed(), memos: [], starredBooths: [] });
 }
+function openDurableDb(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('indexeddb-unavailable'));return;}const request=indexedDB.open(DURABLE_DB_NAME,1);request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(DURABLE_STORE_NAME))db.createObjectStore(DURABLE_STORE_NAME);};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('indexeddb-open-failed'));});}
+async function durableGet(){const db=await openDurableDb();return new Promise((resolve,reject)=>{const tx=db.transaction(DURABLE_STORE_NAME,'readonly'),request=tx.objectStore(DURABLE_STORE_NAME).get(ACTIVE_STORAGE_KEY);request.onsuccess=()=>resolve(request.result||null);request.onerror=()=>reject(request.error);tx.oncomplete=()=>db.close();tx.onabort=()=>{db.close();reject(tx.error);};});}
+async function durablePut(serialized,revision){const db=await openDurableDb();return new Promise((resolve,reject)=>{const tx=db.transaction(DURABLE_STORE_NAME,'readwrite');tx.objectStore(DURABLE_STORE_NAME).put({revision,data:serialized},ACTIVE_STORAGE_KEY);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};tx.onabort=()=>{db.close();reject(tx.error);};});}
+async function hydrateDurableState(){if(IS_DEMO)return;try{const record=await durableGet(),localRevision=Number(state.storageRevision)||0;if(record?.data&&Number(record.revision)>localRevision){const candidate=normalizeState(JSON.parse(record.data));state=candidate;try{localStorage.setItem(ACTIVE_STORAGE_KEY,record.data);}catch(_){}renderAfterRestore();toast('已从安全存储恢复最近修改');}else{if(!state.storageRevision)state.storageRevision=Date.now();const serialized=JSON.stringify(state);await durablePut(serialized,state.storageRevision);try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);}catch(_){}}}catch(error){console.warn('安全存储初始化失败',error);}}
 function normalizeState(data) {
   const rawItems = Array.isArray(data.items) ? data.items : [];
   const items = rawItems.filter(item => !item.manualPurchase).map((item, index) => ({ ...item, qty: Number(item.qty) > 0 ? Number(item.qty) : 1, intent: item.intent || 'want', intentReviewed: item.intentReviewed === true, order: Number.isFinite(item.order) ? item.order : index, addedAt: Number.isFinite(item.addedAt) ? item.addedAt : (Number.isFinite(item.createdAt) ? item.createdAt : null) }));
@@ -137,7 +144,7 @@ function normalizeState(data) {
   return normalized;
 }
 function normalizeExpense(expense) { return { id: expense.id || uid(), boothRaw: String(expense.boothRaw || expense.booth || '').trim(), amountCents: Math.max(0, Math.round(Number(expense.amountCents ?? (Number(expense.amount) * 100)) || 0)), note: String(expense.note || ''), photo: expense.photo || expense.image || '', linkedItems: Array.isArray(expense.linkedItems) ? expense.linkedItems.map(row => ({ itemId: row.itemId || '', name: row.name || '', qty: Math.max(1, Number(row.qty) || 1) })) : [], hasProxyPurchase: expense.hasProxyPurchase === true, proxyAmountCents: expense.proxyAmountCents === null || expense.proxyAmountCents === undefined || expense.proxyAmountCents === '' ? null : Math.max(0, Math.round(Number(expense.proxyAmountCents) || 0)), createdAt: Number(expense.createdAt) || Date.now(), updatedAt: Number(expense.updatedAt) || null, legacySourceItemId: expense.legacySourceItemId || '' }; }
-function saveState() { localStorage.setItem(ACTIVE_STORAGE_KEY, JSON.stringify(state)); renderStats(); }
+function saveState(){state.storageRevision=Date.now();const serialized=JSON.stringify(state);let localSaved=true;try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);}catch(error){localSaved=false;console.warn('localStorage 保存失败',error);}renderStats();durablePut(serialized,state.storageRevision).then(()=>{if(!localSaved)showGlobalAction('本机常规存储空间不足；本次修改已保存到安全存储。建议尽快导出 JSON 备份。','导出备份',downloadJson,0);}).catch(error=>{console.error('安全存储保存失败',error);if(!localSaved)showGlobalAction('这次修改未能保存。请暂时不要关闭页面，并立即导出 JSON 备份。','导出备份',downloadJson,0);});}
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
 function safeUrl(value) { try { const url = new URL(String(value || '')); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } }
 function uid() { return `i-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
@@ -552,7 +559,7 @@ function transferSummary(){return{items:state.items.length,booths:new Set([...st
 function dataSummary(data){const rows=Array.isArray(data.items)?data.items:[],memos=Array.isArray(data.memos)?data.memos:[],manual=Array.isArray(data.manualBooths)?data.manualBooths:[],expenses=Array.isArray(data.expenses)?data.expenses:rows.filter(item=>item.manualPurchase);return{items:rows.filter(item=>!item.manualPurchase).length,booths:new Set([...rows.map(item=>item.boothRaw).filter(Boolean),...memos.map(memo=>memo.booth).filter(Boolean),...manual]).size,memos:memos.length,images:rows.filter(item=>item.customCover).length+memos.filter(memo=>memo.image).length,purchases:expenses.length};}
 function renderAfterRestore(){document.getElementById('budgetLimit').value=state.budgetLimit??'';document.getElementById('visitDate').value=state.visitDate||'2026-11-07';listFilters={intents:[],statuses:[],starred:false,halls:[],sources:[],types:[]};renderCountdown();renderRoute();renderList();renderOrganizer();renderMemos();updateFilterUi();}
 function showRestoreUndo(){if(IS_DEMO)return;document.getElementById('restoreUndoBar').hidden=false;}
-function applyRestoredState(data,source){if(IS_DEMO||!Array.isArray(data?.items))throw new Error('invalid');const candidate=normalizeState(data),previous=JSON.stringify(state),snapshot=JSON.stringify({createdAt:Date.now(),source,data:JSON.parse(previous)});localStorage.setItem(RESTORE_SNAPSHOT_KEY,snapshot);try{localStorage.setItem(ACTIVE_STORAGE_KEY,JSON.stringify(candidate));}catch(error){localStorage.removeItem(RESTORE_SNAPSHOT_KEY);throw error;}state=candidate;renderAfterRestore();showRestoreUndo();}
+function applyRestoredState(data,source){if(IS_DEMO||!Array.isArray(data?.items))throw new Error('invalid');const candidate=normalizeState(data),previous=JSON.stringify(state),snapshot=JSON.stringify({createdAt:Date.now(),source,data:JSON.parse(previous)});candidate.storageRevision=Date.now();const serialized=JSON.stringify(candidate);localStorage.setItem(RESTORE_SNAPSHOT_KEY,snapshot);try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);}catch(error){localStorage.removeItem(RESTORE_SNAPSHOT_KEY);throw error;}state=candidate;durablePut(serialized,candidate.storageRevision).catch(error=>console.warn('恢复存档写入安全存储失败',error));renderAfterRestore();showRestoreUndo();}
 function setTransferBusy(busy,message=''){document.getElementById('createTransferButton').disabled=busy;document.getElementById('restoreTransferButton').disabled=busy;document.getElementById('transferStatus').textContent=message;}
 async function createTransfer(){if(IS_DEMO){toast('演示模式不能上传迁移存档');return;}const code=randomTransferCode(),plain=new TextEncoder().encode(JSON.stringify({...state,event:EVENT,exportedAt:new Date().toISOString()}));if(plain.byteLength>17*1024*1024){toast('存档图片太多，请先使用 JSON 文件迁移');return;}setTransferBusy(true,'正在本机加密并上传…');try{const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await transferKey(code,salt,'encrypt'),cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain)),payload=JSON.stringify({v:1,s:bytesToBase64Url(salt),i:bytesToBase64Url(iv),c:bytesToBase64Url(cipher)}),id=await transferId(code),response=await fetch(`${TRANSFER_API}/v1/transfers`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,payload,summary:transferSummary()})});if(!response.ok)throw new Error((await response.json().catch(()=>({}))).error||`HTTP ${response.status}`);const formatted=formatTransferCode(code);document.getElementById('transferCode').textContent=formatted;document.getElementById('transferCodeBox').hidden=false;document.getElementById('transferCodeInput').value=formatted;setTransferBusy(false,'迁移码已生成，72 小时内有效。');toast('加密迁移码已生成');}catch(error){console.error(error);setTransferBusy(false,'生成失败，请检查网络或稍后重试。');toast('迁移码生成失败');}}
 async function retryTransferDelete(id){try{const response=await fetch(`${TRANSFER_API}/v1/transfers/${id}`,{method:'DELETE'});if(!response.ok)throw new Error(String(response.status));sessionStorage.removeItem('cptf-transfer-delete-retry-v1');showGlobalAction('云端临时副本已删除。','',null,3500);}catch(_){sessionStorage.setItem('cptf-transfer-delete-retry-v1',id);showGlobalAction('数据已恢复，但临时副本删除失败；它仍会在到期后失效。','重新删除',()=>retryTransferDelete(id),0);}}
@@ -597,12 +604,15 @@ document.getElementById('createTransferButton').addEventListener('click',createT
 document.getElementById('restoreTransferButton').addEventListener('click',restoreTransfer);
 document.getElementById('transferCodeInput').addEventListener('input',event=>{const code=normalizeTransferCode(event.target.value).slice(0,16);event.target.value=formatTransferCode(code);});
 document.getElementById('copyTransferCode').addEventListener('click',async()=>{const code=document.getElementById('transferCode').textContent;try{await navigator.clipboard.writeText(code);toast('迁移码已复制');}catch(_){document.getElementById('transferCodeInput').value=code;document.getElementById('transferCodeInput').select();toast('请长按复制迁移码');}});
-document.getElementById('undoRestore').addEventListener('click',()=>{try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY));if(!snapshot?.data)throw new Error('missing');const candidate=normalizeState(snapshot.data);localStorage.setItem(ACTIVE_STORAGE_KEY,JSON.stringify(candidate));state=candidate;localStorage.removeItem(RESTORE_SNAPSHOT_KEY);document.getElementById('restoreUndoBar').hidden=true;renderAfterRestore();toast('已撤销刚才的恢复');}catch(error){console.error(error);toast('恢复前快照不可用');}});
+document.getElementById('undoRestore').addEventListener('click',()=>{try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY));if(!snapshot?.data)throw new Error('missing');const candidate=normalizeState(snapshot.data);candidate.storageRevision=Date.now();const serialized=JSON.stringify(candidate);localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);durablePut(serialized,candidate.storageRevision).catch(error=>console.warn('撤销恢复写入安全存储失败',error));state=candidate;localStorage.removeItem(RESTORE_SNAPSHOT_KEY);document.getElementById('restoreUndoBar').hidden=true;renderAfterRestore();toast('已撤销刚才的恢复');}catch(error){console.error(error);toast('恢复前快照不可用');}});
 document.getElementById('dismissRestoreUndo').addEventListener('click',()=>{document.getElementById('restoreUndoBar').hidden=true;localStorage.removeItem(RESTORE_SNAPSHOT_KEY);});
 document.querySelectorAll('[data-list-view]').forEach(button => button.addEventListener('click', () => { state.listView = button.dataset.listView; document.querySelectorAll('[data-list-view]').forEach(row => row.classList.toggle('active', row === button)); saveState(); renderList(); }));
 document.querySelectorAll('[data-organize-view]').forEach(button => button.addEventListener('click', () => { state.organizerView = button.dataset.organizeView; document.querySelectorAll('[data-organize-view]').forEach(row => row.classList.toggle('active', row === button)); saveState(); renderOrganizer(); }));
-document.getElementById('settingsButton').addEventListener('click', () => document.getElementById('settingsDialog').showModal());
+document.getElementById('settingsButton').addEventListener('click', () => {navigator.storage?.persist?.().catch(()=>{});document.getElementById('settingsDialog').showModal();});
 document.getElementById('openChangelog').addEventListener('click', () => { document.getElementById('settingsDialog').close(); openChangelog(false); });
+const isStandaloneApp=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+document.getElementById('appModeNote').textContent=isStandaloneApp?'你正在使用主屏幕版。它可能与 Safari 标签页使用不同的本机存档；首次打开若为空，请用迁移码或 JSON 恢复一次。检查更新只刷新网页程序，不会清除当前存档。':'检查网页程序的新版本，不会删除心愿单、图片或备忘。添加到主屏幕后，首次打开可能需要用迁移码或 JSON 恢复存档。';
+document.getElementById('refreshAppButton').addEventListener('click',async event=>{const button=event.currentTarget,status=document.getElementById('refreshAppStatus');button.disabled=true;button.textContent='正在检查更新…';status.textContent='当前存档会保留，只刷新网页程序文件。';try{if(!navigator.onLine)throw new Error('offline');const registration=await navigator.serviceWorker?.getRegistration();if(registration)await registration.update();if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('cptf-shopping-')).map(key=>caches.delete(key)));}await fetch('./index.html?refresh='+Date.now(),{cache:'reload'});status.textContent='已取得最新版本，正在重新载入…';setTimeout(()=>location.reload(),350);}catch(error){console.error(error);status.textContent=error.message==='offline'?'当前处于离线状态，请联网后再检查更新。':'暂时无法检查更新；当前存档没有受到影响。';button.disabled=false;button.textContent='重新检查更新';}});
 document.getElementById('changelogDialog').addEventListener('close', markChangelogSeen);
 document.getElementById('refreshCatalogButton').addEventListener('click', async () => { try { catalogPromise=null; await enrichFromPublicCatalog(true); } catch (error) { console.error(error); toast('公共资料库暂时无法连接，请稍后重试'); } });
 document.getElementById('showPurchased').checked = state.showPurchased;
@@ -638,6 +648,7 @@ document.getElementById('quickPurchasePhoto').addEventListener('change',loadQuic
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./service-worker.js').catch(() => {});
 
 refreshMemoTypes(); updateFilterUi(); document.querySelectorAll('[data-list-view]').forEach(button => button.classList.toggle('active', button.dataset.listView === (state.listView || 'list'))); document.querySelectorAll('[data-organize-view]').forEach(button => button.classList.toggle('active', button.dataset.organizeView === (state.organizerView || 'list'))); renderCountdown(); renderStats(); renderRoute(); renderList(); renderOrganizer(); renderMemos();activateView('list',false);
+hydrateDurableState();
 if(!IS_DEMO){try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY));if(snapshot?.data&&Date.now()-Number(snapshot.createdAt)<86400000)showRestoreUndo();else localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}catch(_){localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}}
 if(!IS_DEMO){const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);}
 if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}}
