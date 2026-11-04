@@ -4,7 +4,7 @@ const DEMO_STORAGE_KEY = 'cptf-shopping-demo-v1';
 const IS_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const ACTIVE_STORAGE_KEY = IS_DEMO ? DEMO_STORAGE_KEY : STORAGE_KEY;
 const RESTORE_SNAPSHOT_KEY = 'cptf-shopping-pre-restore-v1';
-const APP_RELEASE = '0.29.2';
+const APP_RELEASE = '1.0.0';
 const CHANGELOG_SEEN_KEY = IS_DEMO ? 'cptf-changelog-seen-demo-v1' : 'cptf-changelog-seen-v1';
 const CATALOG_VERSION = '2026-11-01-v1';
 const CATALOG_UPDATED_AT = '2026 年 11 月 1 日';
@@ -20,6 +20,12 @@ const INTENT_RANK = { must: 0, want: 1, maybe: 2, freebie: 3, browse: 4 };
 const BOOTH_STATES = { pending: '未到达', visited: '已逛', return: '需要返场', queue: '排队中', away: '摊主暂离', skipped: '已跳过' };
 const SEED_ITEMS = [];
 const CHANGELOG = [
+  { version: '1.0.0', title: '官方逛展地图上线', changes: [
+    '正式接入 1～4 号同人馆与 9 号企业馆高清地图，可搜索摊位并查看自己的心愿、重点和返场目标。',
+    '摊位一览与逛展地图改为醒目的双模式切换，进入地图会继承当前馆别并适配手机操作。',
+    '地图资源改为按馆加载并离线缓存；加载失败会显示原因、重试入口与返回摊位一览。',
+    '加强大容量图片存档启动保护，并修复刷新后恢复前快照的撤销入口。'
+  ]},
   { version: '0.29.2', title: '大存档恢复修复', changes: [
     'JSON 与迁移码恢复改为先写入大容量安全存储，含多图的存档不再因手机常规存储空间不足而恢复失败。'
   ]},
@@ -80,6 +86,7 @@ const CHANGELOG = [
 ];
 
 let state = loadState();
+let durableHydrationComplete = IS_DEMO;
 let activeHall = HALL_ORDER.find(hall => state.items.some(item => hallOf(item.boothRaw) === hall)) || '壹';
 let memoFilter = 'all';
 let editingMemoId = '';
@@ -142,7 +149,7 @@ async function durableDelete(key){const db=await openDurableDb();return new Prom
 function isLocalImage(value){return typeof value==='string'&&value.startsWith('data:image/');}
 function lightweightSerialized(source){const copy=JSON.parse(JSON.stringify(source));copy.durableStateRequired=true;(copy.items||[]).forEach(item=>{if(isLocalImage(item.coverUrl))item.coverUrl='';item.images=(item.images||[]).filter(image=>!isLocalImage(image));});(copy.memos||[]).forEach(memo=>{memo.images=(memo.images||[]).filter(image=>!isLocalImage(image));if(isLocalImage(memo.image))memo.image='';});(copy.expenses||[]).forEach(expense=>{if(isLocalImage(expense.photo))expense.photo='';});return JSON.stringify(copy);}
 function writeLocalState(serialized,source=state){try{localStorage.setItem(ACTIVE_STORAGE_KEY,serialized);return true;}catch(error){console.warn('常规存储改用轻量索引',error);try{localStorage.setItem(ACTIVE_STORAGE_KEY,lightweightSerialized(source));return false;}catch(fallbackError){console.error('轻量索引保存失败',fallbackError);return false;}}}
-async function hydrateDurableState(){if(IS_DEMO)return;try{const record=await durableGet(),localRevision=Number(state.storageRevision)||0,needsDurable=state.durableStateRequired===true;if(record?.data&&(needsDurable||Number(record.revision)>localRevision)){const candidate=normalizeState(JSON.parse(record.data));state=candidate;writeLocalState(record.data,candidate);renderAfterRestore();toast(needsDurable?'已从安全存储载入完整图片资料':'已从安全存储恢复最近修改');}else{if(!state.storageRevision)state.storageRevision=Date.now();const serialized=JSON.stringify(state);await durablePut(serialized,state.storageRevision);writeLocalState(serialized,state);}}catch(error){console.warn('安全存储初始化失败',error);}}
+async function hydrateDurableState(){if(IS_DEMO){durableHydrationComplete=true;return;}try{const record=await durableGet(),localRevision=Number(state.storageRevision)||0,needsDurable=state.durableStateRequired===true;if(record?.data&&(needsDurable||Number(record.revision)>localRevision)){const candidate=normalizeState(JSON.parse(record.data));state=candidate;writeLocalState(record.data,candidate);renderAfterRestore();toast(needsDurable?'已从安全存储载入完整图片资料':'已从安全存储恢复最近修改');}else{if(!state.storageRevision)state.storageRevision=Date.now();const serialized=JSON.stringify(state);await durablePut(serialized,state.storageRevision);writeLocalState(serialized,state);}durableHydrationComplete=true;}catch(error){console.warn('安全存储初始化失败',error);if(state.durableStateRequired===true){showGlobalAction('完整图片资料暂时无法载入。为保护现有存档，本次修改功能已暂停。','重新载入',()=>location.reload(),0);throw error;}durableHydrationComplete=true;toast('大容量存储暂不可用，当前使用常规本机存储');}}
 function normalizeState(data) {
   const rawItems = Array.isArray(data.items) ? data.items : [];
   const items = rawItems.filter(item => !item.manualPurchase).map((item, index) => ({ ...item, images: Array.isArray(item.images) ? item.images.filter(Boolean).slice(0,6) : [], qty: Number(item.qty) > 0 ? Number(item.qty) : 1, intent: item.intent || 'want', intentReviewed: item.intentReviewed === true, order: Number.isFinite(item.order) ? item.order : index, addedAt: Number.isFinite(item.addedAt) ? item.addedAt : (Number.isFinite(item.createdAt) ? item.createdAt : null) }));
@@ -161,7 +168,7 @@ function normalizeState(data) {
   return normalized;
 }
 function normalizeExpense(expense) { return { id: expense.id || uid(), boothRaw: String(expense.boothRaw || expense.booth || '').trim(), amountCents: Math.max(0, Math.round(Number(expense.amountCents ?? (Number(expense.amount) * 100)) || 0)), note: String(expense.note || ''), photo: expense.photo || expense.image || '', linkedItems: Array.isArray(expense.linkedItems) ? expense.linkedItems.map(row => ({ itemId: row.itemId || '', name: row.name || '', qty: Math.max(1, Number(row.qty) || 1) })) : [], hasProxyPurchase: expense.hasProxyPurchase === true, proxyAmountCents: expense.proxyAmountCents === null || expense.proxyAmountCents === undefined || expense.proxyAmountCents === '' ? null : Math.max(0, Math.round(Number(expense.proxyAmountCents) || 0)), createdAt: Number(expense.createdAt) || Date.now(), updatedAt: Number(expense.updatedAt) || null, legacySourceItemId: expense.legacySourceItemId || '' }; }
-function saveState(){state.storageRevision=Date.now();delete state.durableStateRequired;const serialized=JSON.stringify(state),localSaved=writeLocalState(serialized,state);renderStats();durablePut(serialized,state.storageRevision).then(()=>{if(!localSaved)toast('图片较多，已自动改用大容量安全存储');}).catch(error=>{console.error('安全存储保存失败',error);if(!localSaved)showGlobalAction('这次修改未能保存。请暂时不要关闭页面，并立即导出 JSON 备份。','导出备份',downloadJson,0);});}
+function saveState(){if(!durableHydrationComplete){toast('完整资料仍在载入，请稍候');return;}state.storageRevision=Date.now();delete state.durableStateRequired;const serialized=JSON.stringify(state),localSaved=writeLocalState(serialized,state);renderStats();durablePut(serialized,state.storageRevision).then(()=>{if(!localSaved)toast('图片较多，已自动改用大容量安全存储');}).catch(error=>{console.error('安全存储保存失败',error);if(!localSaved)showGlobalAction('这次修改未能保存。请暂时不要关闭页面，并立即导出 JSON 备份。','导出备份',downloadJson,0);});}
 function esc(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
 function safeUrl(value) { try { const url = new URL(String(value || '')); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } }
 function uid() { return `i-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
@@ -675,9 +682,13 @@ document.getElementById('quickPurchasePhoto').addEventListener('change',loadQuic
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./service-worker.js').catch(() => {});
 
 refreshMemoTypes(); updateFilterUi(); document.querySelectorAll('[data-list-view]').forEach(button => button.classList.toggle('active', button.dataset.listView === (state.listView || 'list'))); document.querySelectorAll('[data-organize-view]').forEach(button => button.classList.toggle('active', button.dataset.organizeView === (state.organizerView || 'list'))); renderCountdown(); renderStats(); renderRoute(); renderList(); renderOrganizer(); renderMemos();activateView('list',false);
-hydrateDurableState();
-if(!IS_DEMO){try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY));if(snapshot?.data&&Date.now()-Number(snapshot.createdAt)<86400000)showRestoreUndo();else localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}catch(_){localStorage.removeItem(RESTORE_SNAPSHOT_KEY);}}
-if(!IS_DEMO){const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);}
-if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}}
-if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
+async function restoreStartupActions(){
+  if(!IS_DEMO){
+    try{const marker=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT_KEY)),fresh=marker?.durable===true&&Date.now()-Number(marker.createdAt)<86400000,record=fresh?await durableGet(RESTORE_SNAPSHOT_KEY):null;if(fresh&&record?.data)showRestoreUndo();else{localStorage.removeItem(RESTORE_SNAPSHOT_KEY);if(record)await durableDelete(RESTORE_SNAPSHOT_KEY);}}catch(error){console.warn('恢复前快照检查失败',error);}
+    const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);
+    try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}
+  }
+  if(state.items.length&&state.catalogVersion!==CATALOG_VERSION)setTimeout(()=>enrichFromPublicCatalog(false).catch(error=>console.warn('公共资料库自动补全失败',error)),500);
+}
+hydrateDurableState().then(()=>{document.getElementById('storageLoading').hidden=true;restoreStartupActions();}).catch(()=>{document.querySelector('#storageLoading small').textContent='完整资料载入失败。请重新打开页面，现有存档没有被覆盖。';});
 

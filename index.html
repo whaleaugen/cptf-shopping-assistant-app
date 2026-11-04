@@ -11,7 +11,7 @@
   <title>CPTF 购物助手</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=33">
+  <link rel="stylesheet" href="styles.css?v=34">
 </head>
 <body>
   <div class="demo-banner" id="demoBanner" hidden><strong>演示模式</strong><span>这里的修改不会影响你的正式心愿单。</span><a href="./index.html">退出演示</a></div>
@@ -34,10 +34,11 @@
         <div class="countdown" id="countdown" aria-live="polite"></div>
       </section>
 
-      <section class="notice" id="mapNotice">
-        <span class="notice-icon">i</span>
-        <div><strong>官方场地图暂未公布</strong><p>当前按 Excel 摊位号提供馆别和字母区导航。地图公布后可直接替换，不影响你的购买记录。</p></div>
-      </section>
+      <button class="notice map-notice" id="mapNotice" type="button">
+        <span class="notice-icon">⌖</span>
+        <span><strong>官方场地图已接入</strong><small>前往“摊位”查看地图，定位心愿制品、重点摊位和返场目标。</small></span>
+        <b>打开地图 →</b>
+      </button>
       <div class="catalog-freshness" role="status"><span>↻</span> 公共制品资料更新至 <strong id="catalogUpdatedAt">2026 年 10 月 30 日</strong><small>图片、作者、热度等由公开资料补全</small></div>
 
       <section class="stats budget-stats" aria-label="预算统计">
@@ -188,10 +189,11 @@
 
   <div class="restore-undo" id="restoreUndoBar" hidden><span>已恢复备份，恢复前的数据已临时保留。</span><button id="undoRestore" type="button">撤销恢复</button><button id="dismissRestoreUndo" type="button" aria-label="关闭">×</button></div>
   <div class="global-action" id="globalAction" hidden><span id="globalActionText"></span><button id="globalActionButton" type="button"></button><button id="globalActionDismiss" type="button" aria-label="关闭">×</button></div>
+  <div class="storage-loading" id="storageLoading" role="status" aria-live="polite"><div><span class="storage-loading-mark">C</span><strong>正在载入完整资料</strong><small>正在恢复图片与本机存档，请稍候……</small></div></div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=37"></script>
-  <script src="visitor-map.js?v=1"></script>
+  <script src="app.js?v=38"></script>
+  <script src="visitor-map.js?v=2"></script>
 </body>
 </html>
 
