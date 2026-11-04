@@ -98,3 +98,4 @@ python -m http.server 4174
 ## 致谢与许可
 
 项目基于 [Riiiiiii/cpg08-shopping-assistant](https://github.com/Riiiiiii/cpg08-shopping-assistant) 的离线购物助手思路重制，并保留原仓库许可证。公共资料来自公开可见的活动信息；制品图片及相关内容版权归各自作者或权利人所有。
+

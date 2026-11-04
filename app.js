@@ -680,3 +680,4 @@ if(!IS_DEMO){try{const snapshot=JSON.parse(localStorage.getItem(RESTORE_SNAPSHOT
 if(!IS_DEMO){const pendingDelete=sessionStorage.getItem('cptf-transfer-delete-retry-v1');if(pendingDelete)showGlobalAction('上次恢复的数据已保存，但云端临时副本还没有删除。','重新删除',()=>retryTransferDelete(pendingDelete),0);}
 if(!IS_DEMO){try{if(localStorage.getItem(CHANGELOG_SEEN_KEY)!==APP_RELEASE)setTimeout(()=>{if(!document.querySelector('dialog[open]'))openChangelog(true);},650);}catch(_){}}
 if (state.items.length && state.catalogVersion !== CATALOG_VERSION) setTimeout(() => enrichFromPublicCatalog(false).catch(error => console.warn('公共资料库自动补全失败', error)), 500);
+
